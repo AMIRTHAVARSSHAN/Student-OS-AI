@@ -1,10 +1,10 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
 class UserBase(BaseModel):
-    email: EmailStr
+    email: str
     full_name: str
     preferred_language: str = "en"
     avatar_url: Optional[str] = None

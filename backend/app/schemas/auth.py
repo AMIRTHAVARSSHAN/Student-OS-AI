@@ -1,15 +1,15 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(..., description="User email address")
     password: str = Field(min_length=8, description="Password must be at least 8 characters")
     full_name: str = Field(min_length=2, max_length=100)
     preferred_language: Optional[str] = Field(default="en")
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class TokenResponse(BaseModel):
