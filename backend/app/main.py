@@ -14,12 +14,16 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ScholarOS Backend Engine...")
     async with engine.begin() as conn:
         from sqlalchemy import text
+        is_postgres = "postgresql" in str(engine.url)
+        if is_postgres:
+            try:
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            except Exception as e:
+                logger.warning(f"Postgres extension notice: {e}")
         try:
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-            await conn.execute(text("ALTER TABLE academic_profiles ADD COLUMN IF NOT EXISTS institution_details_json JSON;"))
+            await conn.run_sync(Base.metadata.create_all)
         except Exception as e:
-            logger.warning(f"DDL column/extension check notice: {e}")
-        await conn.run_sync(Base.metadata.create_all)
+            logger.error(f"Error creating tables: {e}")
     logger.info("Database schemas initialized.")
     yield
     logger.info("Shutting down ScholarOS Backend Engine...")

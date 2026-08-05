@@ -2,8 +2,19 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
+db_url = settings.DATABASE_URL.strip() if settings.DATABASE_URL else ""
+
+# Normalize Postgres dialect for SQLAlchemy 2.0 asyncpg driver
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
+    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+if not db_url:
+    db_url = "sqlite+aiosqlite:///./scholar_os_dev.db"
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=False,
     future=True
 )
