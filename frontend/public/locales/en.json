@@ -1,0 +1,19 @@
+{
+  "app_name": "ScholarOS",
+  "tagline": "AI Operating System for Students",
+  "nav": {
+    "dashboard": "Dashboard",
+    "study_plan": "Study Plan",
+    "attendance": "Attendance",
+    "notes": "Notes & OCR",
+    "flashcards": "Spaced Repetition",
+    "exams": "Exam Predictor",
+    "analytics": "Analytics",
+    "pdf": "PDF & RAG Vault",
+    "ai_chat": "Scholar AI",
+    "settings": "Settings"
+  },
+  "greeting": "Vanakkam",
+  "ask_ai": "Ask Scholar AI",
+  "streak": "Day Streak"
+}

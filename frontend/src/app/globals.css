@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-primary: hsl(250, 80%, 60%);
+  --brand-primary-hover: hsl(250, 80%, 55%);
+  --brand-primary-active: hsl(250, 80%, 50%);
+
+  --surface-0: hsl(0, 0%, 4%);
+  --surface-1: hsl(0, 0%, 7%);
+  --surface-2: hsl(0, 0%, 10%);
+  --surface-3: hsl(0, 0%, 14%);
+
+  --text-primary: hsl(0, 0%, 93%);
+  --text-secondary: hsl(0, 0%, 63%);
+  --text-tertiary: hsl(0, 0%, 40%);
+
+  --status-success: hsl(142, 71%, 45%);
+  --status-warning: hsl(38, 92%, 50%);
+  --status-error: hsl(0, 84%, 60%);
+
+  --border-default: hsl(0, 0%, 15%);
+  --border-hover: hsl(0, 0%, 25%);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* Enable smooth scrolling across page */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 60fps Hardware GPU acceleration classes */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-0);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* Subtle glassmorphism */
+.glass-panel {
+  background: rgba(18, 18, 20, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-default);
+}
