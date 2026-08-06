@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from datetime import datetime, timezone, timedelta
+from sqlalchemy import select, func
+from datetime import datetime, timezone
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token, decode_token
 from app.core.config import settings
@@ -13,15 +13,16 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == req.email))
+    clean_email = req.email.strip().lower()
+    result = await db.execute(select(User).where(func.lower(func.trim(User.email)) == clean_email))
     if result.scalars().first():
         raise HTTPException(status_code=400, detail="User with this email already exists")
 
     hashed_pw = get_password_hash(req.password)
     user = User(
-        email=req.email,
+        email=clean_email,
         password_hash=hashed_pw,
-        full_name=req.full_name,
+        full_name=req.full_name.strip(),
         preferred_language=req.preferred_language or "en",
         subscription_tier="free",
         is_admin=False,
@@ -34,7 +35,8 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == req.email))
+    clean_email = req.email.strip().lower()
+    result = await db.execute(select(User).where(func.lower(func.trim(User.email)) == clean_email))
     user = result.scalars().first()
 
     if not user or not verify_password(req.password, user.password_hash):

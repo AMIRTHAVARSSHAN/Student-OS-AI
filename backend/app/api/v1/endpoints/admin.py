@@ -3,8 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any
+from pydantic import BaseModel, Field
 from app.core.database import get_db
 from app.dependencies import get_current_admin_user
+from app.core.security import get_password_hash
 from app.models.user import User
 from app.models.note import Note
 from app.models.document import Document
@@ -14,6 +16,9 @@ from app.models.attendance import AttendanceRecord
 from app.models.subject import Subject
 
 router = APIRouter()
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(min_length=6, description="New password for user")
 
 @router.get("/stats")
 async def get_admin_stats(
@@ -93,11 +98,9 @@ async def inspect_user_full_data(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Fetch user's PDFs
     pdf_res = await db.execute(select(Document).where(Document.user_id == user_id))
     user_pdfs = pdf_res.scalars().all()
 
-    # Fetch user's subjects
     subj_res = await db.execute(select(Subject).where(Subject.user_id == user_id))
     user_subjs = [s.name for s in subj_res.scalars().all()]
 
@@ -150,6 +153,23 @@ async def inspect_user_full_data(
             for sp in target_user.study_plans
         ],
     }
+
+@router.post("/users/{user_id}/reset-password")
+async def reset_user_password_by_admin(
+    user_id: str,
+    req: ResetPasswordRequest,
+    admin_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(User).where(User.id == user_id))
+    target_user = res.scalars().first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target_user.password_hash = get_password_hash(req.new_password)
+    await db.commit()
+
+    return {"message": f"Password for {target_user.email} updated successfully"}
 
 @router.delete("/users/{user_id}")
 async def delete_user_by_admin(

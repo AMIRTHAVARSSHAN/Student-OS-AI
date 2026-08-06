@@ -22,7 +22,8 @@ import {
   Layers, 
   Clock, 
   ShieldAlert,
-  ArrowLeft
+  ArrowLeft,
+  KeyRound
 } from 'lucide-react';
 import Link from 'next/link';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -95,6 +96,12 @@ export default function AdminPage() {
   const [deletingUser, setDeletingUser] = useState<AdminUserItem | null>(null);
   const [deleteError, setDeleteError] = useState('');
 
+  // Password reset state
+  const [resettingUser, setResettingUser] = useState<AdminUserItem | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetError, setResetError] = useState('');
+
   // 1. Fetch current logged-in user profile to verify admin role
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['user_profile'],
@@ -153,6 +160,34 @@ export default function AdminPage() {
     },
   });
 
+  // 6. Reset Password Mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, pass }: { userId: string; pass: string }) => {
+      const res = await apiClient.post(`/admin/users/${userId}/reset-password`, {
+        new_password: pass,
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      setResetMsg(data.message || 'Password reset successfully!');
+      setResetError('');
+      setTimeout(() => {
+        setResettingUser(null);
+        setNewPassword('');
+        setResetMsg('');
+      }, 2000);
+    },
+    onError: (err: any) => {
+      setResetError(err.response?.data?.detail || 'Failed to reset password.');
+    },
+  });
+
+  const handleResetSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resettingUser || !newPassword.trim()) return;
+    resetPasswordMutation.mutate({ userId: resettingUser.id, pass: newPassword.trim() });
+  };
+
   // Access Control Guard
   if (profileLoading) {
     return <div className="p-12 text-center text-xs text-gray-400">Verifying security credentials...</div>;
@@ -201,7 +236,7 @@ export default function AdminPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">Platform Administration</h1>
           <p className="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">
-            Logged in as <span className="font-bold text-rose-300">{profile?.email || user?.email}</span>. Inspect user data memory, authored notes, uploaded documents, study schedules, and control user access.
+            Logged in as <span className="font-bold text-rose-300">{profile?.email || user?.email}</span>. Inspect user data memory, authored notes, uploaded documents, study schedules, and reset passwords or delete users.
           </p>
         </div>
       </div>
@@ -248,7 +283,7 @@ export default function AdminPage() {
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-400" /> Registered Platform Users ({usersList?.length || 0})
             </h2>
-            <p className="text-xs text-[var(--text-secondary)]">Manage accounts, inspect user data, and exercise administrative powers.</p>
+            <p className="text-xs text-[var(--text-secondary)]">Manage accounts, inspect user data, reset passwords, and exercise administrative powers.</p>
           </div>
 
           <div className="flex items-center gap-3 bg-[var(--surface-2)] border border-[var(--border-default)] rounded-xl px-3.5 py-2 w-full sm:w-72">
@@ -324,12 +359,25 @@ export default function AdminPage() {
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 text-right space-x-2">
+                    <td className="py-4 px-4 text-right space-x-1.5">
                       <button
                         onClick={() => setInspectingUserId(u.id)}
                         className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-bold text-[11px] inline-flex items-center gap-1 transition"
                       >
                         <Eye className="w-3.5 h-3.5" /> Inspect User Data
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setResettingUser(u);
+                          setNewPassword('');
+                          setResetMsg('');
+                          setResetError('');
+                        }}
+                        className="p-1.5 rounded-xl text-amber-400 hover:bg-amber-500/10 border border-amber-500/20 transition inline-flex"
+                        title="Reset User Password"
+                      >
+                        <KeyRound className="w-4 h-4" />
                       </button>
 
                       {!u.is_admin && (
@@ -351,6 +399,67 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Reset Password Modal */}
+      {resettingUser && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <form onSubmit={handleResetSubmit} className="w-full max-w-md bg-[#0d0c15] border border-amber-500/40 rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
+                <KeyRound className="w-4 h-4 text-amber-400 shrink-0" /> Reset User Password
+              </div>
+              <button type="button" onClick={() => setResettingUser(null)} className="text-gray-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-300">
+              Set a new password for <strong className="text-white">{resettingUser.full_name}</strong> (<span className="font-mono text-amber-300">{resettingUser.email}</span>):
+            </p>
+
+            {resetMsg && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400" /> {resetMsg}
+              </div>
+            )}
+
+            {resetError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+                {resetError}
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-semibold text-gray-300 block mb-1">New Password</label>
+              <input
+                type="text"
+                required
+                placeholder="Enter new password (min 6 chars)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setResettingUser(null)}
+                className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={resetPasswordMutation.isPending || !newPassword.trim()}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 flex items-center gap-2"
+              >
+                {resetPasswordMutation.isPending ? 'Updating...' : 'Set Password'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* User Inspector Modal Drawer */}
       {inspectingUserId && (
