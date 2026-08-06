@@ -24,6 +24,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         full_name=req.full_name,
         preferred_language=req.preferred_language or "en",
         subscription_tier="free",
+        is_admin=False,
         onboarding_completed=False
     )
     db.add(user)
@@ -47,7 +48,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     access_token = create_access_token(
         subject=user.id,
-        extra_claims={"tier": user.subscription_tier}
+        extra_claims={"tier": user.subscription_tier, "is_admin": user.is_admin}
     )
     return TokenResponse(
         access_token=access_token,
@@ -55,6 +56,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user_id=user.id,
         subscription_tier=user.subscription_tier,
+        is_admin=user.is_admin,
         onboarding_completed=user.onboarding_completed
     )
 
@@ -73,7 +75,7 @@ async def refresh_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get
 
     access_token = create_access_token(
         subject=user.id,
-        extra_claims={"tier": user.subscription_tier}
+        extra_claims={"tier": user.subscription_tier, "is_admin": user.is_admin}
     )
     return TokenResponse(
         access_token=access_token,
@@ -81,5 +83,6 @@ async def refresh_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user_id=user.id,
         subscription_tier=user.subscription_tier,
+        is_admin=user.is_admin,
         onboarding_completed=user.onboarding_completed
     )

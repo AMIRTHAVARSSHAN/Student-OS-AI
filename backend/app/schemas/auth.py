@@ -18,6 +18,7 @@ class TokenResponse(BaseModel):
     expires_in: int
     user_id: UUID
     subscription_tier: str
+    is_admin: bool = False
     onboarding_completed: bool
 
 class RefreshTokenRequest(BaseModel):

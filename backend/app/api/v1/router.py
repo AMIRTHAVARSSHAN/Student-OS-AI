@@ -10,7 +10,8 @@ from app.api.v1.endpoints import (
     ai_chat,
     analytics,
     pdf,
-    ocr
+    ocr,
+    admin
 )
 
 api_router = APIRouter()
@@ -26,3 +27,4 @@ api_router.include_router(ai_chat.router, prefix="/ai", tags=["ai"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(pdf.router, prefix="/pdf", tags=["pdf"])
 api_router.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

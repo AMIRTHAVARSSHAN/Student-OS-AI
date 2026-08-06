@@ -3,8 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, AsyncSessionLocal
 from app.api.v1.router import api_router
+from app.core.security import get_password_hash
+from app.models.user import User
+from app.models.academic_profile import AcademicProfile
+from sqlalchemy import select
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger("scholar_os")
@@ -25,6 +29,50 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Error creating tables: {e}")
     logger.info("Database schemas initialized.")
+
+    # Auto-seed & verify Admin user account (admin2009@gmail.com / admin200968)
+    async with AsyncSessionLocal() as db:
+        try:
+            res = await db.execute(select(User).where(User.email == "admin2009@gmail.com"))
+            admin_user = res.scalars().first()
+            
+            hashed_pw = get_password_hash("admin200968")
+            if not admin_user:
+                logger.info("Seeding Admin account: admin2009@gmail.com")
+                admin_user = User(
+                    email="admin2009@gmail.com",
+                    password_hash=hashed_pw,
+                    full_name="System Admin",
+                    preferred_language="en",
+                    subscription_tier="scholar_pro",
+                    is_admin=True,
+                    onboarding_completed=True,
+                    is_active=True
+                )
+                db.add(admin_user)
+                await db.commit()
+                await db.refresh(admin_user)
+                
+                # Add default academic profile for admin
+                admin_prof = AcademicProfile(
+                    user_id=admin_user.id,
+                    education_level="professional",
+                    field="engineering",
+                    specialization="System Administration & AI Control",
+                    institution_name="ScholarOS Global Control Center"
+                )
+                db.add(admin_prof)
+                await db.commit()
+            else:
+                # Ensure is_admin is True and password is synced
+                admin_user.is_admin = True
+                admin_user.password_hash = hashed_pw
+                admin_user.onboarding_completed = True
+                await db.commit()
+                logger.info("Admin account admin2009@gmail.com verified and updated.")
+        except Exception as e:
+            logger.error(f"Error seeding admin user: {e}")
+
     yield
     logger.info("Shutting down ScholarOS Backend Engine...")
 

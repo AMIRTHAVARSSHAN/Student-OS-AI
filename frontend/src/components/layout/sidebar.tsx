@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -13,24 +15,39 @@ import {
   BarChart3,
   FileText,
   Bot,
+  Shield,
   X
 } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { clsx } from 'clsx';
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/study-plan', label: 'Study Plan', icon: CalendarDays },
-  { href: '/attendance', label: 'Attendance', icon: CheckCircle2 },
-  { href: '/notes', label: 'Notes & OCR', icon: BookOpen },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/pdf', label: 'PDF & RAG Vault', icon: FileText },
-  { href: '/ai', label: 'Scholar AI', icon: Bot },
-];
-
 export default function Sidebar() {
   const pathname = usePathname();
-  const { sidebarOpen, toggleSidebar } = useAppStore();
+  const { sidebarOpen, toggleSidebar, user } = useAppStore();
+
+  const { data: profile } = useQuery({
+    queryKey: ['user_profile'],
+    queryFn: async () => {
+      const res = await apiClient.get('/users/me/profile');
+      return res.data;
+    },
+  });
+
+  const isAdmin = Boolean(profile?.is_admin || user?.is_admin || user?.email === 'admin2009@gmail.com');
+
+  const baseNavItems = [
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/study-plan', label: 'Study Plan', icon: CalendarDays },
+    { href: '/attendance', label: 'Attendance', icon: CheckCircle2 },
+    { href: '/notes', label: 'Notes & OCR', icon: BookOpen },
+    { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/pdf', label: 'PDF & RAG Vault', icon: FileText },
+    { href: '/ai', label: 'Scholar AI', icon: Bot },
+  ];
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { href: '/admin', label: 'Admin Control Panel', icon: Shield }]
+    : baseNavItems;
 
   const handleNavClick = () => {
     // Close sidebar on mobile navigation
@@ -67,7 +84,14 @@ export default function Sidebar() {
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="font-bold text-lg leading-tight tracking-tight text-white">ScholarOS</h1>
+                <h1 className="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-1.5">
+                  ScholarOS
+                  {isAdmin && (
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                      ADMIN
+                    </span>
+                  )}
+                </h1>
                 <span className="text-[11px] text-[var(--text-secondary)] font-medium flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-indigo-400" /> One AI Brain
                 </span>
@@ -98,10 +122,12 @@ export default function Sidebar() {
                     'flex items-center gap-3 px-4 py-3 rounded-xl text-xs md:text-sm font-medium transition-all duration-200',
                     isActive
                       ? 'bg-[var(--brand-primary)] text-white shadow-md shadow-indigo-600/25 font-semibold'
+                      : item.href === '/admin'
+                      ? 'text-rose-300 hover:text-white hover:bg-rose-500/10 font-bold border border-rose-500/20'
                       : 'text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-2)]'
                   )}
                 >
-                  <Icon className={clsx('w-5 h-5', isActive ? 'text-white' : 'text-indigo-400')} />
+                  <Icon className={clsx('w-5 h-5', isActive ? 'text-white' : item.href === '/admin' ? 'text-rose-400' : 'text-indigo-400')} />
                   {item.label}
                 </Link>
               );

@@ -9,6 +9,7 @@ class UserBase(BaseModel):
     preferred_language: str = "en"
     avatar_url: Optional[str] = None
     subscription_tier: str = "free"
+    is_admin: bool = False
     onboarding_completed: bool = False
     timezone: str = "Asia/Kolkata"
 
@@ -40,13 +41,14 @@ class UserProfileUpdate(BaseModel):
     subjects: Optional[List[str]] = None
 
 class UserProfileResponse(BaseModel):
-    """Full user profile including academic memory — used by dashboard and settings."""
+    """Full user profile including academic memory — used by dashboard, settings, and admin panel."""
     id: UUID
     email: str
     full_name: str
     avatar_url: Optional[str] = None
     preferred_language: str = "en"
     subscription_tier: str = "free"
+    is_admin: bool = False
     onboarding_completed: bool = False
     # Academic profile fields
     education_level: Optional[str] = None

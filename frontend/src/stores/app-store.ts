@@ -8,6 +8,7 @@ export interface UserProfile {
   avatarUrl?: string;
   preferredLanguage: 'en' | 'ta' | 'tanglish';
   subscriptionTier: 'free' | 'scholar' | 'scholar_pro';
+  is_admin?: boolean;
   onboardingCompleted: boolean;
   // Academic memory fields
   educationLevel?: string;
