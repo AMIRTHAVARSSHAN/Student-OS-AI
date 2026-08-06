@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     LOG_LEVEL: str = Field(default="INFO")
     
-    # Database & Cache
+    # Database & Cache (Supabase PostgreSQL / SQLite)
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./scholar_os_dev.db")
+    SUPABASE_DB_URL: str = Field(default="")
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
     
     # AI & Model Configuration

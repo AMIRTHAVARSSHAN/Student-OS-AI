@@ -1,9 +1,13 @@
 import os
+import re
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
-db_url = settings.DATABASE_URL.strip() if settings.DATABASE_URL else ""
+# 1. Prefer SUPABASE_DB_URL if present, otherwise DATABASE_URL
+raw_url = settings.SUPABASE_DB_URL.strip() or settings.DATABASE_URL.strip()
+
+db_url = raw_url
 
 # Normalize Postgres dialect for SQLAlchemy 2.0 asyncpg driver
 if db_url.startswith("postgres://"):
@@ -11,18 +15,26 @@ if db_url.startswith("postgres://"):
 elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# On Render / cloud deployments, if DATABASE_URL points to localhost/127.0.0.1 or is invalid, fallback to SQLite
-is_cloud = os.getenv("RENDER") or os.getenv("PORT") or os.getenv("RENDER_SERVICE_ID")
-if is_cloud and ("localhost" in db_url or "127.0.0.1" in db_url):
+# Clean up sslmode parameter for asyncpg compatibility if present in query string
+if "postgresql+asyncpg" in db_url and "sslmode=" in db_url:
+    db_url = re.sub(r'[?&]sslmode=[^&]+', '', db_url)
+
+# Fallback to local SQLite if no valid database URL is specified
+if not db_url or db_url == "sqlite+aiosqlite:///./scholar_os_dev.db":
+    # On cloud servers like Render, warn if using local SQLite
+    is_cloud = os.getenv("RENDER") or os.getenv("PORT") or os.getenv("RENDER_SERVICE_ID")
     db_url = "sqlite+aiosqlite:///./scholar_os_dev.db"
 
-if not db_url:
-    db_url = "sqlite+aiosqlite:///./scholar_os_dev.db"
+connect_args = {}
+if "postgresql+asyncpg" in db_url:
+    # Disable SSL requirement enforcement in asyncpg connection args for cloud poolers if needed
+    connect_args = {"ssl": False}
 
 engine = create_async_engine(
     db_url,
     echo=False,
-    future=True
+    future=True,
+    connect_args=connect_args if "postgresql+asyncpg" in db_url else {}
 )
 
 async_session_factory = async_sessionmaker(

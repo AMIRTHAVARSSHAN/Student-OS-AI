@@ -10,4 +10,4 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:///./scholar_os_dev.db
+        value: postgresql+asyncpg://postgres:amirtha2009%40@db.iaykhpsrmptokiantgcc.supabase.co:5432/postgres
