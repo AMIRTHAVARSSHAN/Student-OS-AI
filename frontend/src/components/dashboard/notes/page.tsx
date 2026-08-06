@@ -620,14 +620,24 @@ export default function NotesPage() {
                   }
                   disabled={updateMutation.isPending}
                   title="Save note changes to database"
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 hover:text-white text-[11px] sm:text-xs font-bold flex items-center gap-1 transition"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-white text-[11px] sm:text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/10"
                 >
-                  {savedSuccess ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  {updateMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                      Saving to DB...
+                    </>
+                  ) : savedSuccess ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      Saved to Database! 💾
+                    </>
                   ) : (
-                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <>
+                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                      Save Note
+                    </>
                   )}
-                  {savedSuccess ? 'Saved! 💾' : 'Save Note'}
                 </button>
 
                 <button
