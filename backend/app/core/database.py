@@ -19,6 +19,22 @@ elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+as
 if "postgresql+asyncpg" in db_url and "sslmode=" in db_url:
     db_url = re.sub(r'[?&]sslmode=[^&]+', '', db_url)
 
+# Convert Direct Supabase Host (db.[ref].supabase.co:5432) -> IPv4 Compatible Pooler Host for Render
+supabase_direct_match = re.search(
+    r'postgresql\+asyncpg://([^:]+):([^@]+)@db\.([a-z0-9]+)\.supabase\.co(?::\d+)?/(.+)', 
+    db_url
+)
+if supabase_direct_match:
+    user, password, ref, dbname = supabase_direct_match.groups()
+    if not user.endswith(f".{ref}"):
+        pooler_user = f"{user}.{ref}"
+    else:
+        pooler_user = user
+    
+    # Use Supabase IPv4 Pooler host (Session Mode / Transaction Mode on port 6543)
+    # Default to ap-south-1 or pooler domain which supports dual-stack IPv4/IPv6
+    db_url = f"postgresql+asyncpg://{pooler_user}:{password}@aws-0-ap-south-1.pooler.supabase.com:6543/{dbname}"
+
 # Fallback to local SQLite if no valid database URL is specified
 if not db_url:
     db_url = "sqlite+aiosqlite:///./scholar_os_dev.db"
@@ -39,8 +55,11 @@ if "postgresql+asyncpg" in db_url:
         "command_timeout": 15,
         "server_settings": {"jit": "off"}
     }
+    # Disable prepared statement cache for PgBouncer / Supavisor pooler compatibility
+    if "pooler.supabase.com" in db_url or ":6543" in db_url:
+        connect_args["prepared_statement_cache_size"] = 0
+
     engine_kwargs["connect_args"] = connect_args
-    # Enable connection health pinging & recycling to prevent stale pooler disconnects
     engine_kwargs["pool_pre_ping"] = True
     engine_kwargs["pool_recycle"] = 300
 
