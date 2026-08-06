@@ -23,10 +23,8 @@ import {
   Minimize2,
   FileDown
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 import AIChatSidebar from './AIChatSidebar';
-
-const BlockEditor = dynamic(() => import('./BlockEditor'), { ssr: false });
 
 interface NoteItem {
   id: string;
@@ -69,7 +67,7 @@ export default function NotesPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
-  const [editBlocks, setEditBlocks] = useState<any[]>([]);
+  const [editContent, setEditContent] = useState('');
   const [copied, setCopied] = useState(false);
 
   // Search filter
@@ -171,21 +169,7 @@ export default function NotesPage() {
   const handleOpenNote = (note: NoteItem) => {
     setActiveNote(note);
     setEditTitle(note.title);
-    
-    // Convert backend blocks to BlockNote format if they exist
-    if (note.blocks && note.blocks.length > 0) {
-      // Very basic conversion: if it's from AI backend, we map it to BlockNote paragraphs
-      const parsedBlocks = note.blocks.map((b) => ({
-        type: "paragraph",
-        content: JSON.stringify(b.content)
-      }));
-      setEditBlocks(parsedBlocks);
-    } else {
-      setEditBlocks([
-        { type: "paragraph", content: note.content || "Empty Note" }
-      ]);
-    }
-    
+    setEditContent(note.content || note.plain_text || '');
     setIsEditingActive(false);
     setIsFullscreen(false);
     setIsChatOpen(false);
@@ -681,19 +665,17 @@ export default function NotesPage() {
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2 text-xs sm:text-sm text-white font-bold focus:outline-none"
                   />
-                  <div className="flex-1 bg-white rounded-xl overflow-hidden min-h-[400px]">
-                    <BlockEditor 
-                      blocks={editBlocks} 
-                      onChange={(b) => setEditBlocks(b)} 
-                    />
-                  </div>
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={14}
+                    placeholder="Write or edit your Markdown notes..."
+                    className="w-full bg-black/60 border border-white/15 rounded-xl p-4 text-xs sm:text-sm font-mono text-gray-200 focus:outline-none focus:border-indigo-500"
+                  />
                 </div>
               ) : (
-                <div className="p-4 sm:p-6 rounded-2xl bg-white text-black border border-white/10 min-h-[400px]">
-                  <BlockEditor 
-                    blocks={editBlocks} 
-                    readOnly={true} 
-                  />
+                <div className="p-5 sm:p-7 rounded-2xl bg-black/60 text-white border border-white/10 min-h-[350px] shadow-inner">
+                  <MarkdownRenderer content={activeNote.content || activeNote.plain_text} />
                 </div>
               )}
             </div>
@@ -715,7 +697,7 @@ export default function NotesPage() {
                       id: activeNote.id,
                       payload: { 
                         title: editTitle, 
-                        content: JSON.stringify(editBlocks)
+                        content: editContent
                       },
                     })
                   }

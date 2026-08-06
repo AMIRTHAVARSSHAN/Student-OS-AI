@@ -69,14 +69,41 @@ async def generate_ai_note(
         if subj_obj:
             subject_id = subj_obj.id
 
-    word_count = len(note_structure.title.split()) # Approximate
+    # Compile blocks to rich Markdown content
+    compiled_md = [f"# {note_structure.title}\n"]
+    for b in note_structure.blocks:
+        b_type = b.block_type
+        c = b.content
+        if b_type == "heading_1":
+            compiled_md.append(f"## {c.title or c.text or ''}")
+        elif b_type == "heading_2":
+            compiled_md.append(f"### {c.title or c.text or ''}")
+        elif b_type == "heading_3":
+            compiled_md.append(f"#### {c.title or c.text or ''}")
+        elif b_type == "paragraph":
+            compiled_md.append(f"{c.text or ''}")
+        elif b_type == "callout":
+            c_type = (c.callout_type or "info").upper()
+            c_title = c.title or "Key Point"
+            compiled_md.append(f"> **{c_type}: {c_title}**\n> {c.text or ''}")
+        elif b_type in ["code", "mermaid"]:
+            lang = c.language or ("mermaid" if b_type == "mermaid" else "")
+            compiled_md.append(f"```{lang}\n{c.code or c.text or ''}\n```")
+        elif b_type == "flashcard":
+            compiled_md.append(f"**🎴 Key Revision Flashcard**\n- **Q**: {c.front or ''}\n- **A**: {c.back or ''}")
+        else:
+            if c.text:
+                compiled_md.append(f"{c.text}")
+
+    full_content = "\n\n".join(compiled_md)
+    word_count = len(full_content.split())
 
     note = Note(
         user_id=current_user.id,
         subject_id=subject_id,
         title=note_structure.title,
-        content="", # Deprecated, keeping empty
-        plain_text=note_structure.title,
+        content=full_content,
+        plain_text=full_content[:500],
         source="ai-generated",
         tags=[req.topic.lower(), "ai-generated"],
         topic=req.topic,
