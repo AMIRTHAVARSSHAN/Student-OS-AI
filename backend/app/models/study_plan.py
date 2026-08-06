@@ -23,7 +23,7 @@ class StudyBlock(Base, TimestampMixin):
     __tablename__ = "study_blocks"
 
     plan_id: Mapped[str] = mapped_column(String(36), ForeignKey("study_plans.id", ondelete="CASCADE"), nullable=False, index=True)
-    subject_id: Mapped[str] = mapped_column(String(36), ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False)
+    subject_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("subjects.id", ondelete="CASCADE"), nullable=True)
     date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     start_time: Mapped[time] = mapped_column(Time, nullable=False)
     end_time: Mapped[time] = mapped_column(Time, nullable=False)

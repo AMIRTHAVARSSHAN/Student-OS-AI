@@ -1,22 +1,22 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Union
 from uuid import UUID
 from datetime import date, time
 
 class StudyBlockCreate(BaseModel):
-    subject_id: UUID
+    subject_id: Optional[Union[str, UUID]] = None
     date: date
     start_time: time
     end_time: time
     topic: str
     block_type: str = "study" # study, revision, practice, break
     priority: str = "medium" # high, medium, low
-    note_id: Optional[UUID] = None
+    note_id: Optional[Union[str, UUID]] = None
 
 class StudyBlockResponse(BaseModel):
-    id: UUID
-    plan_id: UUID
-    subject_id: UUID
+    id: Union[str, UUID]
+    plan_id: Union[str, UUID]
+    subject_id: Optional[Union[str, UUID]] = None
     date: date
     start_time: time
     end_time: time
@@ -25,7 +25,7 @@ class StudyBlockResponse(BaseModel):
     priority: str
     is_completed: bool
     actual_duration_minutes: Optional[int] = None
-    note_id: Optional[UUID] = None
+    note_id: Optional[Union[str, UUID]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,10 +34,10 @@ class StudyPlanCreate(BaseModel):
     start_date: date
     end_date: date
     plan_type: str = "weekly"
-    focus_subjects: Optional[List[UUID]] = None
+    focus_subjects: Optional[List[Union[str, UUID]]] = None
 
 class StudyPlanResponse(BaseModel):
-    id: UUID
+    id: Union[str, UUID]
     title: str
     start_date: date
     end_date: date
