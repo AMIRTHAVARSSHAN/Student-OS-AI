@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import os
 import shutil
@@ -295,5 +296,10 @@ async def generate_note_from_pdf(
 
     db.add(note)
     await db.commit()
-    await db.refresh(note)
-    return note
+    
+    res_reloaded = await db.execute(
+        select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
+        .where(Note.id == note.id)
+    )
+    return res_reloaded.scalars().first()
