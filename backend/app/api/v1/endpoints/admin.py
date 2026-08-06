@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.dependencies import get_current_admin_user
 from app.models.user import User
 from app.models.note import Note
-from app.models.pdf_document import PDFDocument
+from app.models.document import Document
 from app.models.study_plan import StudyPlan, StudyBlock
 from app.models.academic_profile import AcademicProfile
 from app.models.attendance import AttendanceRecord
@@ -22,7 +22,7 @@ async def get_admin_stats(
 ):
     total_users = (await db.execute(select(func.count(User.id)))).scalar() or 0
     total_notes = (await db.execute(select(func.count(Note.id)))).scalar() or 0
-    total_pdfs = (await db.execute(select(func.count(PDFDocument.id)))).scalar() or 0
+    total_pdfs = (await db.execute(select(func.count(Document.id)))).scalar() or 0
     total_study_plans = (await db.execute(select(func.count(StudyPlan.id)))).scalar() or 0
     total_subjects = (await db.execute(select(func.count(Subject.id)))).scalar() or 0
 
@@ -49,7 +49,7 @@ async def get_all_users(
     user_list = []
     for u in users:
         notes_cnt = (await db.execute(select(func.count(Note.id)).where(Note.user_id == u.id))).scalar() or 0
-        pdfs_cnt = (await db.execute(select(func.count(PDFDocument.id)).where(PDFDocument.user_id == u.id))).scalar() or 0
+        pdfs_cnt = (await db.execute(select(func.count(Document.id)).where(Document.user_id == u.id))).scalar() or 0
         plans_cnt = (await db.execute(select(func.count(StudyPlan.id)).where(StudyPlan.user_id == u.id))).scalar() or 0
         
         prof = u.academic_profiles[0] if u.academic_profiles else None
@@ -94,7 +94,7 @@ async def inspect_user_full_data(
         raise HTTPException(status_code=404, detail="User not found")
 
     # Fetch user's PDFs
-    pdf_res = await db.execute(select(PDFDocument).where(PDFDocument.user_id == user_id))
+    pdf_res = await db.execute(select(Document).where(Document.user_id == user_id))
     user_pdfs = pdf_res.scalars().all()
 
     # Fetch user's subjects
