@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import os
 import logging
@@ -150,7 +151,6 @@ async def get_note(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    from sqlalchemy.orm import selectinload
     result = await db.execute(
         select(Note)
         .options(selectinload(Note.blocks), selectinload(Note.sources))
