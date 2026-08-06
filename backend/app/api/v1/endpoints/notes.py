@@ -113,7 +113,7 @@ async def generate_ai_note(
         block = NoteBlock(
             note_id=note.id,
             block_type=block_content.block_type,
-            content=block_content.content,
+            content=block_content.content.model_dump(exclude_none=True),
             order=i
         )
         db.add(block)

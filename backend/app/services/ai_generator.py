@@ -9,10 +9,19 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Define Pydantic models for Structured Output
+# Define explicit Pydantic models without generic Dict[str, Any] to comply with Gemini Developer API schema validation
+class BlockDetails(BaseModel):
+    text: Optional[str] = Field(None, description="Main text content for paragraphs, headings, or callouts")
+    code: Optional[str] = Field(None, description="Code snippet or Mermaid diagram syntax")
+    language: Optional[str] = Field(None, description="Programming language for code blocks (e.g. python, javascript)")
+    callout_type: Optional[str] = Field(None, description="info, warning, tip for callout blocks")
+    title: Optional[str] = Field(None, description="Heading title or Callout title")
+    front: Optional[str] = Field(None, description="Flashcard question/front text")
+    back: Optional[str] = Field(None, description="Flashcard answer/back text")
+
 class NoteBlockContent(BaseModel):
-    block_type: str = Field(description="The type of block: paragraph, heading_1, heading_2, heading_3, callout, mermaid, code, flashcard, mcq")
-    content: Dict[str, Any] = Field(description="The content of the block. For text: {'text': '...'}. For mermaid: {'code': '...'}. For code: {'language': '...', 'code': '...'}. For callout: {'type': 'info|warning|tip', 'title': '...', 'text': '...'}. For flashcard: {'front': '...', 'back': '...'}.")
+    block_type: str = Field(description="The type of block: paragraph, heading_1, heading_2, heading_3, callout, mermaid, code, flashcard")
+    content: BlockDetails = Field(description="Structured block details")
 
 class NoteStructure(BaseModel):
     title: str
