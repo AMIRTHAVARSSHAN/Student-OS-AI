@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
-import { BlockNoteView } from "@blocknote/mantine";
+import { BlockNoteView } from "@blocknote/react";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
+import "@blocknote/react/style.css";
 
 interface BlockEditorProps {
   blocks: PartialBlock[];
