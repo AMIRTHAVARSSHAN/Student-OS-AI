@@ -26,8 +26,8 @@ import {
 
 // Dynamic imports to avoid SSR issues
 const ThreeCanvas = dynamic(() => import('@/components/ThreeCanvas'), { ssr: false });
-const DashboardLayout = dynamic(() => import('@/app/(dashboard)/layout'), { ssr: false });
-const DashboardPage = dynamic(() => import('@/app/(dashboard)/page'), { ssr: false });
+const DashboardLayout = dynamic(() => import('@/components/dashboard/layout'), { ssr: false });
+const DashboardPage = dynamic(() => import('@/components/dashboard/page'), { ssr: false });
 
 export default function RootPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
