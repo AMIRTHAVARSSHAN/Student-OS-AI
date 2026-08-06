@@ -52,7 +52,7 @@ export default function StudyPlanPage() {
 
   // Toggle block completion mutation
   const toggleCompleteMutation = useMutation({
-    mutationFn: async (blockId: str) => {
+    mutationFn: async (blockId: string) => {
       const res = await apiClient.patch(`/study-plans/blocks/${blockId}/complete`);
       return res.data;
     },
