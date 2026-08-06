@@ -4,7 +4,7 @@ from sqlalchemy import select
 from pydantic import BaseModel
 import os
 import logging
-from google import genai
+from groq import Groq
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.note import Note, NoteBlock
@@ -46,11 +46,11 @@ async def chat_with_note(
     for block in blocks:
         context_text += f"[{block.block_type.upper()}]: {block.content}\n"
 
-    api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+    api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured.")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured.")
 
-    client = genai.Client(api_key=api_key)
+    client = Groq(api_key=api_key)
     
     prompt = f"""
     You are an AI study assistant analyzing the student's study note context below.
@@ -64,11 +64,12 @@ async def chat_with_note(
     """
 
     try:
-        res = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
+        res = client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}]
         )
-        return {"reply": res.text or "I couldn't generate a response."}
+        reply = res.choices[0].message.content if res.choices else "I couldn't generate a response."
+        return {"reply": reply}
     except Exception as e:
-        logger.error(f"Chat error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to process chat.")
+        logger.error(f"Groq note chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process chat: {e}")

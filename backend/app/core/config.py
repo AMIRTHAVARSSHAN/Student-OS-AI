@@ -20,9 +20,9 @@ class Settings(BaseSettings):
     SUPABASE_JWKS_URL: str = Field(default="https://iaykhpsrmptokiantgcc.supabase.co/auth/v1/.well-known/jwks.json")
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
     
-    # AI & Model Configuration
-    GEMINI_API_KEY: str = Field(default="AQ.Ab8RN6LGiDY9LB8quO1IlrQKJ-Kq7Z8MlVkF-FOXmX_nUr-gxw")
-    GEMINI_MODEL: str = Field(default="gemini-2.0-flash")
+    # AI & Model Configuration (Groq Llama 3.3 70B)
+    GROQ_API_KEY: str = Field(default="")
+    GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile")
     
     # Security & Auth
     SECRET_KEY: str = Field(default="dev_secret_key_change_in_production_32_bytes_long")

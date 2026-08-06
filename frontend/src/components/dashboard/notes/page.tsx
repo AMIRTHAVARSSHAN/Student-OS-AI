@@ -317,7 +317,7 @@ export default function NotesPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">Notes & Knowledge Memory</h1>
           <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
-            Create, view compiled markdown scripts, or generate full in-depth academic study notes on any topic powered by Google Gemini.
+            Create, view compiled markdown scripts, or generate full in-depth academic study notes on any topic powered by Groq Llama 3.3 70B.
           </p>
         </div>
 

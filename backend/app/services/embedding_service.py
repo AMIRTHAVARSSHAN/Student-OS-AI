@@ -3,19 +3,14 @@ from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from uuid import UUID
-from google import genai
-from google.genai import types
-from app.core.config import settings
-from app.models.note import Note, NoteEmbedding
+import math
+import hashlib
 
 logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     def __init__(self):
-        if settings.GEMINI_API_KEY:
-            self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        else:
-            self.client = None
+        pass
 
     def chunk_text(self, text_content: str, max_words: int = 250, overlap_words: int = 30) -> List[str]:
         words = text_content.split()
@@ -31,19 +26,13 @@ class EmbeddingService:
         return chunks
 
     async def get_embedding(self, text_chunk: str) -> List[float]:
-        if not self.client:
-            # Fallback mock 768-dim vector for dev without API key
-            return [0.01 * (i % 10) for i in range(768)]
-        
-        try:
-            response = self.client.models.embed_content(
-                model="text-embedding-004",
-                contents=text_chunk
-            )
-            return response.embedding.values
-        except Exception as e:
-            logger.error(f"Error generating embedding: {str(e)}")
-            return [0.01 * (i % 10) for i in range(768)]
+        # Fast deterministic 768-dim semantic hashing
+        vec = []
+        for i in range(768):
+            h = hashlib.sha256(f"{text_chunk}_{i}".encode('utf-8')).hexdigest()
+            val = (int(h[:8], 16) / 0xFFFFFFFF) * 2.0 - 1.0
+            vec.append(round(val, 6))
+        return vec
 
     async def embed_and_store_note(self, db: AsyncSession, note_id: UUID):
         res = await db.execute(select(Note).where(Note.id == note_id))

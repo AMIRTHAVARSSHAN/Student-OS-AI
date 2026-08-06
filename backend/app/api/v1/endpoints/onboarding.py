@@ -5,8 +5,8 @@ from sqlalchemy import select, delete
 from typing import List, Dict, Any
 import json
 import logging
-from google import genai
-from google.genai import types
+import os
+from groq import AsyncGroq
 
 from app.dependencies import get_current_user
 from app.models.user import User
@@ -64,73 +64,61 @@ Make sure the `field` key is mapped to one of: engineering, medical, commerce, a
 Make sure `subjects` is a clean array of subject strings.
 """
 
-@router.post("/chat")
-async def onboarding_ai_chat(
+@router.post("/chat-stream")
+async def onboarding_chat_stream(
     req: Dict[str, Any],
     current_user: User = Depends(get_current_user)
 ):
-    """Streams AI responses during step-by-step conversational onboarding with Gemini model fallback."""
+    """Streams AI responses during step-by-step conversational onboarding with Groq model fallback."""
     messages = req.get("messages", [])
     
-    if not settings.GEMINI_API_KEY:
+    api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
+    if not api_key:
         async def fallback_stream():
-            yield f"data: {json.dumps({'type': 'text', 'content': 'Welcome! Please configure GEMINI_API_KEY for full AI onboarding.'})}\n\n"
+            yield f"data: {json.dumps({'type': 'text', 'content': 'Welcome! Please configure GROQ_API_KEY for full AI onboarding.'})}\n\n"
             yield "data: [DONE]\n\n"
         return StreamingResponse(fallback_stream(), media_type="text/event-stream")
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    client = AsyncGroq(api_key=api_key)
 
-    # Format history for Gemini API
-    formatted_contents = []
+    formatted_messages = [{"role": "system", "content": ONBOARDING_SYSTEM_PROMPT}]
     for m in messages:
-        role = "user" if m.get("role") == "user" else "model"
-        formatted_contents.append(
-            types.Content(
-                role=role,
-                parts=[types.Part.from_text(text=m.get("content", ""))]
-            )
-        )
-
-    config = types.GenerateContentConfig(
-        system_instruction=ONBOARDING_SYSTEM_PROMPT,
-        temperature=0.6,
-        top_p=0.95,
-        max_output_tokens=2048,
-    )
+        role = "user" if m.get("role") == "user" else "assistant"
+        formatted_messages.append({"role": role, "content": m.get("content", "")})
 
     candidate_models = [
-        "gemini-2.5-flash", 
-        "gemini-3.6-flash", 
-        "gemini-3.5-flash", 
-        "gemini-2.0-flash-lite", 
-        "gemini-flash-latest"
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768"
     ]
 
     async def event_generator():
         success = False
         for model_name in candidate_models:
             try:
-                response_stream = client.models.generate_content_stream(
+                response_stream = await client.chat.completions.create(
                     model=model_name,
-                    contents=formatted_contents,
-                    config=config,
+                    messages=formatted_messages,
+                    stream=True,
+                    temperature=0.6,
+                    max_tokens=2048
                 )
 
-                for chunk in response_stream:
-                    if chunk.text:
-                        yield f"data: {json.dumps({'type': 'text', 'content': chunk.text})}\n\n"
-                
-                yield "data: [DONE]\n\n"
-                success = True
-                break
+                async for chunk in response_stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        success = True
+                        text_part = chunk.choices[0].delta.content
+                        yield f"data: {json.dumps({'type': 'text', 'content': text_part})}\n\n"
+
+                if success:
+                    break
             except Exception as e:
-                logger.warning(f"Model {model_name} failed: {e}. Trying next candidate...")
+                logger.warning(f"Onboarding stream model {model_name} failed: {e}")
 
         if not success:
-            # Smart conversational fallback if API quota is reached
-            fallback_msg = generate_smart_fallback_response(messages)
-            yield f"data: {json.dumps({'type': 'text', 'content': fallback_msg})}\n\n"
-            yield "data: [DONE]\n\n"
+            yield f"data: {json.dumps({'type': 'text', 'content': 'Internal AI streaming error. Please try clicking next step.'})}\n\n"
+
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

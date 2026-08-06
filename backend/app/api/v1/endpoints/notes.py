@@ -4,7 +4,6 @@ from sqlalchemy import select
 from typing import List, Optional
 import os
 import logging
-from google import genai
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.note import Note, NoteBlock, NoteSource
@@ -16,14 +15,6 @@ from app.services.ai_generator import generate_structured_note
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-CANDIDATE_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-flash-latest"
-]
 
 @router.post("", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 async def create_note(

@@ -152,7 +152,7 @@ function LandingPage() {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium backdrop-blur-lg shadow-inner"
         >
           <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-          <span>Powered by Google Gemini 2.5 Flash & SM-2 Spaced Repetition</span>
+          <span>Powered by Groq Llama 3.3 70B & SM-2 Spaced Repetition</span>
         </motion.div>
 
         <motion.h1
@@ -423,7 +423,7 @@ function LandingPage() {
               <ul className="space-y-2 text-xs text-gray-300 pt-4">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Attendance Cockpit & Predictor</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> SM-2 Spaced Repetition Flashcards</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Google Gemini 2.5 Flash AI Companion</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Groq Llama 3.3 70B AI Companion</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Cloud Database & Storage</li>
               </ul>
             </div>
@@ -452,7 +452,7 @@ function LandingPage() {
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-400" /> Everything in Free Plan</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-400" /> Unlimited Hand-Written Document OCR</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-400" /> Compiled Markdown & AI Notes Generator</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-400" /> Priority Gemini 2.5 Flash API Speed</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-400" /> Priority Groq Llama 3.3 70B API Speed</li>
               </ul>
             </div>
             <Link
@@ -469,7 +469,7 @@ function LandingPage() {
       <footer className="relative z-10 border-t border-white/10 max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500 gap-4">
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-indigo-400" />
-          <span>© 2026 ScholarOS. Powered by Google Gemini.</span>
+          <span>© 2026 ScholarOS. Powered by Groq Llama 3.3 70B.</span>
         </div>
         <div className="flex gap-6">
           <a href="#features" className="hover:text-white transition-colors duration-200">Features</a>

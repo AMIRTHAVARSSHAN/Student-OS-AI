@@ -105,7 +105,7 @@ export default function AIChatPage() {
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMsgId
-            ? { ...msg, content: 'Scholar AI is currently in offline mode. Make sure backend and Gemini API are configured.' }
+            ? { ...msg, content: 'Scholar AI is currently in offline mode. Make sure backend and Groq API are configured.' }
             : msg
         )
       );
@@ -115,9 +115,15 @@ export default function AIChatPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-8.5rem)] md:h-[calc(100vh-8rem)] flex flex-col bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-[calc(100vh-6rem)] max-w-6xl mx-auto pb-16 md:pb-0">
       {/* Header */}
-      <div className="p-3.5 sm:p-4 border-b border-[var(--border-default)] bg-[var(--surface-2)]/50 flex items-center justify-between">
+      <div className="p-4 sm:p-6 rounded-2xl bg-[var(--surface-1)] border border-[var(--border-default)] mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl shrink-0">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Groq Llama 3.3 70B Ultra-Fast Engine Connected</span>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md">
             <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -125,7 +131,7 @@ export default function AIChatPage() {
           <div>
             <h2 className="font-bold text-xs sm:text-sm leading-tight text-white">Scholar AI Assistant</h2>
             <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Multi-Model Gemini Engine Connected
+              Live Connection
             </p>
           </div>
         </div>

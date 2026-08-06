@@ -179,7 +179,7 @@ export default function AIOnboardingPage() {
         ...prev,
         {
           role: 'assistant',
-          content: 'Sorry, I ran into an error connecting to Gemini AI. Please try again.',
+          content: 'Sorry, I ran into an error connecting to Groq AI. Please try again.',
         },
       ]);
     } finally {
@@ -396,7 +396,7 @@ export default function AIOnboardingPage() {
               <h1 className="font-bold text-base tracking-tight flex items-center gap-2">
                 Scholar AI Onboarding <Sparkles className="w-4 h-4 text-purple-400 fill-purple-400" />
               </h1>
-              <p className="text-xs text-gray-400">Step-by-step academic setup powered by Gemini Flash</p>
+              <p className="text-xs text-gray-400">Step-by-step academic setup powered by Groq Llama 3.3 70B</p>
             </div>
           </div>
 

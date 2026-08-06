@@ -6,7 +6,7 @@ import os
 import shutil
 import logging
 from pypdf import PdfReader
-from google import genai
+from groq import Groq
 
 from app.dependencies import get_current_user
 from app.models.user import User
@@ -21,10 +21,9 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 CANDIDATE_MODELS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-flash-latest"
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768"
 ]
 
 UPLOAD_DIR = os.path.join(os.getcwd(), "uploads", "pdfs")
@@ -163,11 +162,11 @@ async def chat_with_pdf(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+    api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on server.")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured on server.")
 
-    client = genai.Client(api_key=api_key)
+    client = Groq(api_key=api_key)
 
     context_text = doc.extracted_text or "No extracted text available for this document."
     # Truncate context text to safe length for model
@@ -195,12 +194,12 @@ async def chat_with_pdf(
 
     for model in CANDIDATE_MODELS:
         try:
-            res_ai = client.models.generate_content(
+            res_ai = client.chat.completions.create(
                 model=model,
-                contents=prompt
+                messages=[{"role": "user", "content": prompt}]
             )
-            if res_ai.text:
-                answer_text = res_ai.text.strip()
+            if res_ai.choices and res_ai.choices[0].message.content:
+                answer_text = res_ai.choices[0].message.content.strip()
                 break
         except Exception as e:
             logger.warning(f"Model {model} failed for PDF Chat: {e}")
@@ -233,11 +232,11 @@ async def generate_note_from_pdf(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+    api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on server.")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured on server.")
 
-    client = genai.Client(api_key=api_key)
+    client = Groq(api_key=api_key)
 
     context_text = doc.extracted_text or "No extracted text available for this document."
     truncated_context = context_text[:20000]
@@ -266,15 +265,15 @@ async def generate_note_from_pdf(
 
     for model in CANDIDATE_MODELS:
         try:
-            res_ai = client.models.generate_content(
+            res_ai = client.chat.completions.create(
                 model=model,
-                contents=prompt
+                messages=[{"role": "user", "content": prompt}]
             )
-            if res_ai.text:
-                generated_markdown = res_ai.text.strip()
+            if res_ai.choices and res_ai.choices[0].message.content:
+                generated_markdown = res_ai.choices[0].message.content.strip()
                 break
         except Exception as e:
-            logger.warning(f"Model {model} failed for PDF Note Generation: {e}")
+            logger.warning(f"Model {model} failed for PDF Note generation: {e}")
             last_err = e
 
     if not generated_markdown:

@@ -2,25 +2,28 @@ import json
 import logging
 import os
 from typing import AsyncGenerator, Dict, Any, List
-from google import genai
-from google.genai import types
+from groq import AsyncGroq, Groq
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 CANDIDATE_MODELS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-flash-latest",
-    "gemini-2.0-flash"
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768"
 ]
 
 class AIService:
-    def get_client(self):
-        api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+    def get_async_client(self):
+        api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
         if api_key:
-            return genai.Client(api_key=api_key)
+            return AsyncGroq(api_key=api_key)
+        return None
+
+    def get_sync_client(self):
+        api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
+        if api_key:
+            return Groq(api_key=api_key)
         return None
 
     def build_system_prompt(self, student_context: Dict[str, Any], language: str = "en") -> str:
@@ -53,73 +56,62 @@ You are Scholar, an AI study companion inside ScholarOS. Your job is to help stu
     ) -> AsyncGenerator[Dict[str, Any], None]:
         system_instruction = self.build_system_prompt(student_context, language)
 
-        client = self.get_client()
+        client = self.get_async_client()
         if not client:
-            yield {"type": "text", "content": "ScholarOS AI is running in mock mode. Add your GEMINI_API_KEY to activate full intelligence."}
+            yield {"type": "text", "content": "ScholarOS AI is running in mock mode. Add your GROQ_API_KEY to activate full intelligence."}
             return
 
-        # Prepare Gemini contents
-        formatted_contents = []
+        # Prepare OpenAI-compatible messages for Groq
+        formatted_messages = [{"role": "system", "content": system_instruction}]
         for msg in messages:
-            role = "user" if msg["role"] == "user" else "model"
-            formatted_contents.append(
-                types.Content(
-                    role=role,
-                    parts=[types.Part.from_text(text=msg["content"])]
-                )
-            )
+            role = "user" if msg["role"] == "user" else "assistant"
+            formatted_messages.append({"role": role, "content": msg["content"]})
 
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=0.7,
-            top_p=0.95,
-            max_output_tokens=4096,
-        )
+        models_to_try = [settings.GROQ_MODEL] + [m for m in CANDIDATE_MODELS if m != settings.GROQ_MODEL]
 
         stream_started = False
         last_error = None
 
-        # Build candidate model list with user configured model first
-        models_to_try = [settings.GEMINI_MODEL] + [m for m in CANDIDATE_MODELS if m != settings.GEMINI_MODEL]
-
         for model in models_to_try:
             try:
-                logger.info(f"Attempting Gemini streaming with model: {model}")
-                response_stream = client.models.generate_content_stream(
+                logger.info(f"Attempting Groq streaming with model: {model}")
+                response_stream = await client.chat.completions.create(
                     model=model,
-                    contents=formatted_contents,
-                    config=config,
+                    messages=formatted_messages,
+                    stream=True,
+                    temperature=0.7,
+                    max_tokens=4096
                 )
 
-                for chunk in response_stream:
-                    if chunk.text:
+                async for chunk in response_stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
                         stream_started = True
-                        yield {"type": "text", "content": chunk.text}
+                        yield {"type": "text", "content": chunk.choices[0].delta.content}
 
                 if stream_started:
                     return
             except Exception as e:
-                logger.warning(f"Model {model} failed in AI service stream: {e}")
+                logger.warning(f"Model {model} failed in Groq AI service stream: {e}")
                 last_error = e
 
         if not stream_started:
-            logger.error(f"All candidate models failed in AI service: {last_error}")
-            yield {"type": "error", "content": f"AI service rate limited or quota exceeded. Please try again shortly."}
+            logger.error(f"All candidate Groq models failed in AI service: {last_error}")
+            yield {"type": "error", "content": f"AI service error: {last_error}"}
 
     async def generate_text_single(self, prompt: str) -> str:
-        client = self.get_client()
+        client = self.get_async_client()
         if not client:
             return ""
 
-        models_to_try = [settings.GEMINI_MODEL] + [m for m in CANDIDATE_MODELS if m != settings.GEMINI_MODEL]
+        models_to_try = [settings.GROQ_MODEL] + [m for m in CANDIDATE_MODELS if m != settings.GROQ_MODEL]
         for model in models_to_try:
             try:
-                res = client.models.generate_content(
+                res = await client.chat.completions.create(
                     model=model,
-                    contents=prompt
+                    messages=[{"role": "user", "content": prompt}]
                 )
-                if res.text:
-                    return res.text.strip()
+                if res.choices and res.choices[0].message.content:
+                    return res.choices[0].message.content.strip()
             except Exception as e:
                 logger.warning(f"Model {model} failed in generate_text_single: {e}")
         return ""
