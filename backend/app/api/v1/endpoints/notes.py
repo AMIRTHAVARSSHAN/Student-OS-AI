@@ -131,7 +131,12 @@ async def list_notes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Note).where(Note.user_id == current_user.id).where(Note.is_archived == False)
+    query = (
+        select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
+        .where(Note.user_id == current_user.id)
+        .where(Note.is_archived == False)
+    )
     if subject_id:
         query = query.where(Note.subject_id == str(subject_id))
     query = query.order_by(Note.is_pinned.desc(), Note.updated_at.desc())
@@ -166,6 +171,7 @@ async def update_note(
 ):
     result = await db.execute(
         select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
         .where(Note.id == str(note_id))
         .where(Note.user_id == current_user.id)
     )
@@ -193,8 +199,14 @@ async def update_note(
         note.is_archived = req.is_archived
 
     await db.commit()
-    await db.refresh(note)
-    return note
+    
+    # Reload with relationships
+    res_updated = await db.execute(
+        select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
+        .where(Note.id == note.id)
+    )
+    return res_updated.scalars().first()
 
 @router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_note(

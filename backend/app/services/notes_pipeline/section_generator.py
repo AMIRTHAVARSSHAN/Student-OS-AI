@@ -58,16 +58,25 @@ def generate_section_content(
     Return ONLY raw JSON.
     """
 
-    res = client.chat.completions.create(
-        model=settings.GROQ_MODEL,
-        messages=[
-            {"role": "system", "content": "You are an educational section generator. Always reply in valid JSON."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.3,
-        max_tokens=4096
-    )
+    GROQ_CANDIDATE_MODELS = [settings.GROQ_MODEL, "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
 
-    content = res.choices[0].message.content
-    return GeneratedSection.model_validate_json(content)
+    last_err = None
+    for model in GROQ_CANDIDATE_MODELS:
+        try:
+            res = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are an educational section generator. Always reply in valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                max_tokens=4096
+            )
+            content = res.choices[0].message.content
+            return GeneratedSection.model_validate_json(content)
+        except Exception as e:
+            logger.warning(f"Groq model {model} failed in section_generator: {e}")
+            last_err = e
+
+    raise last_err

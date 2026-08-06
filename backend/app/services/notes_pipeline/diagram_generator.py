@@ -48,17 +48,26 @@ def generate_diagrams_for_note(
     Return ONLY raw JSON.
     """
 
-    res = client.chat.completions.create(
-        model=settings.GROQ_MODEL,
-        messages=[
-            {"role": "system", "content": "You are a specialized Mermaid diagram & comparison generator. Always reply in valid JSON."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.3,
-        max_tokens=4096
-    )
+    GROQ_CANDIDATE_MODELS = [settings.GROQ_MODEL, "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
 
-    content = res.choices[0].message.content
-    result_set = DiagramSet.model_validate_json(content)
-    return result_set.diagrams
+    last_err = None
+    for model in GROQ_CANDIDATE_MODELS:
+        try:
+            res = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a specialized Mermaid diagram & comparison generator. Always reply in valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                max_tokens=4096
+            )
+            content = res.choices[0].message.content
+            result_set = DiagramSet.model_validate_json(content)
+            return result_set.diagrams
+        except Exception as e:
+            logger.warning(f"Groq model {model} failed in diagram_generator: {e}")
+            last_err = e
+
+    raise last_err
