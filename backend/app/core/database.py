@@ -19,20 +19,17 @@ elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+as
 if "postgresql+asyncpg" in db_url and "sslmode=" in db_url:
     db_url = re.sub(r'[?&]sslmode=[^&]+', '', db_url)
 
-# Convert Direct Supabase Host (db.[ref].supabase.co:5432) -> Exact verified Supabase IPv4 Pooler Host for Render
-supabase_direct_match = re.search(
-    r'postgresql\+asyncpg://([^:]+):([^@]+)@db\.([a-z0-9]+)\.supabase\.co(?::\d+)?/(.+)', 
-    db_url
-)
-if supabase_direct_match:
-    user, password, ref, dbname = supabase_direct_match.groups()
-    if not user.endswith(f".{ref}"):
-        pooler_user = f"{user}.{ref}"
-    else:
-        pooler_user = user
-    
-    # Use verified Supabase Pooler region host (ap-southeast-1)
-    db_url = f"postgresql+asyncpg://{pooler_user}:{password}@aws-0-ap-southeast-1.pooler.supabase.com:6543/{dbname}"
+# Force-resolve any Supabase connection string to the verified working IPv4 Pooler host (ap-southeast-1:5432)
+if "supabase.co" in db_url or "pooler.supabase.com" in db_url:
+    # 1) Replace hostname with verified IPv4 pooler
+    db_url = re.sub(
+        r'@(db\.[a-z0-9]+\.supabase\.co|aws-0-[a-z0-9-]+\.pooler\.supabase\.com)(?::\d+)?', 
+        '@aws-0-ap-southeast-1.pooler.supabase.com:5432', 
+        db_url
+    )
+    # 2) Ensure username contains tenant project reference for pooler authentication
+    if "//postgres:" in db_url:
+        db_url = db_url.replace("//postgres:", "//postgres.iaykhpsrmptokiantgcc:")
 
 # Fallback to local SQLite if no valid database URL is specified
 if not db_url:
@@ -52,12 +49,9 @@ if "postgresql+asyncpg" in db_url:
     connect_args = {
         "ssl": ssl_ctx,
         "command_timeout": 15,
-        "server_settings": {"jit": "off"}
+        "server_settings": {"jit": "off"},
+        "prepared_statement_cache_size": 0
     }
-    # Disable prepared statement cache for PgBouncer / Supavisor pooler compatibility
-    if "pooler.supabase.com" in db_url or ":6543" in db_url:
-        connect_args["prepared_statement_cache_size"] = 0
-
     engine_kwargs["connect_args"] = connect_args
     engine_kwargs["pool_pre_ping"] = True
     engine_kwargs["pool_recycle"] = 300

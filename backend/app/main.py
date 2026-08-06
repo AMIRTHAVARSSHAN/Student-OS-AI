@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
                 await conn.run_sync(Base.metadata.create_all)
             except Exception as e:
                 logger.error(f"Error creating tables: {e}")
-        logger.info("Database schemas initialized.")
+        logger.info("Database schemas initialized successfully.")
     except Exception as db_err:
         logger.error(f"Database connection notice during startup: {db_err}")
 
@@ -88,12 +88,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS configuration supporting Vercel deployment origins and local development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
