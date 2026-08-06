@@ -12,12 +12,16 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO")
     
     # Database & Cache (Supabase PostgreSQL / SQLite)
-    DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./scholar_os_dev.db")
-    SUPABASE_DB_URL: str = Field(default="")
+    DATABASE_URL: str = Field(default="postgresql+asyncpg://postgres.iaykhpsrmptokiantgcc:amirtha2009%40@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres")
+    SUPABASE_DB_URL: str = Field(default="postgresql+asyncpg://postgres.iaykhpsrmptokiantgcc:amirtha2009%40@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres")
+    SUPABASE_URL: str = Field(default="https://iaykhpsrmptokiantgcc.supabase.co")
+    SUPABASE_PUBLISHABLE_KEY: str = Field(default="sb_publishable_FcNSpk_X12a3e9rC0kqQjg_jIrjd7Q2")
+    SUPABASE_SECRET_KEY: str = Field(default="sb_secret_FyGWJel-fDDVCWGrGy3jYQ_QnggIZjH")
+    SUPABASE_JWKS_URL: str = Field(default="https://iaykhpsrmptokiantgcc.supabase.co/auth/v1/.well-known/jwks.json")
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
     
     # AI & Model Configuration
-    GEMINI_API_KEY: str = Field(default="")
+    GEMINI_API_KEY: str = Field(default="AQ.Ab8RN6LGiDY9LB8quO1IlrQKJ-Kq7Z8MlVkF-FOXmX_nUr-gxw")
     GEMINI_MODEL: str = Field(default="gemini-2.0-flash")
     
     # Security & Auth
@@ -28,7 +32,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # CORS
-    CORS_ORIGINS: str = Field(default="http://localhost:3000,http://127.0.0.1:3000")
+    CORS_ORIGINS: str = Field(default="http://localhost:3000,http://127.0.0.1:3000,https://student-os-ai-yd3a-teal.vercel.app,https://student-os-ai.vercel.app,*")
     
     @property
     def cors_origins_list(self) -> List[str]:
