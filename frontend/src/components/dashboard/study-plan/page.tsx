@@ -45,12 +45,33 @@ export default function StudyPlanPage() {
     },
   });
 
+  // 3. Fetch today's study blocks from backend
+  const { data: todayBlocks, isLoading: todayLoading } = useQuery({
+    queryKey: ['today_blocks'],
+    queryFn: async () => {
+      const res = await apiClient.get('/study-plans/today');
+      return res.data || [];
+    },
+  });
+
   // 4. Fetch all user notes to allow attaching/linking notes to study blocks
   const { data: notesVault } = useQuery({
     queryKey: ['notes'],
     queryFn: async () => {
       const res = await apiClient.get('/notes');
       return res.data || [];
+    },
+  });
+
+  // Toggle block completion mutation
+  const toggleCompleteMutation = useMutation({
+    mutationFn: async (blockId: string) => {
+      const res = await apiClient.patch(`/study-plans/blocks/${blockId}/complete`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study_plans'] });
+      queryClient.invalidateQueries({ queryKey: ['today_blocks'] });
     },
   });
 
