@@ -1,6 +1,8 @@
-'use client';
-
 import React from 'react';
+import dynamic from 'next/dynamic';
+import { Info, AlertTriangle, Lightbulb, HelpCircle, CheckCircle2, Copy, Check } from 'lucide-react';
+
+const MermaidDiagram = dynamic(() => import('./MermaidDiagram'), { ssr: false });
 
 interface MarkdownRendererProps {
   content: string;
@@ -23,12 +25,24 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
     // Handle code blocks ```
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
-        elements.push(
-          <div key={`code-${index}`} className="my-4 rounded-xl bg-black/90 border border-emerald-500/20 p-4 font-mono text-xs text-emerald-300 overflow-x-auto shadow-lg">
-            {codeLang && <div className="text-[10px] uppercase text-emerald-400 font-bold mb-2 tracking-wider">{codeLang}</div>}
-            <pre className="whitespace-pre">{codeBlockBuffer.join('\n')}</pre>
-          </div>
-        );
+        const codeText = codeBlockBuffer.join('\n');
+        if (codeLang.toLowerCase() === 'mermaid') {
+          elements.push(
+            <MermaidDiagram key={`mermaid-${index}`} chart={codeText} />
+          );
+        } else {
+          elements.push(
+            <div key={`code-${index}`} className="my-4 rounded-2xl bg-[#090d16] border border-emerald-500/30 p-4 font-mono text-xs text-emerald-300 overflow-x-auto shadow-2xl relative group">
+              {codeLang && (
+                <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2 mb-3">
+                  <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-wider">{codeLang}</span>
+                  <span className="text-[10px] text-gray-500">Source Code</span>
+                </div>
+              )}
+              <pre className="whitespace-pre overflow-x-auto leading-relaxed">{codeText}</pre>
+            </div>
+          );
+        }
         codeBlockBuffer = [];
         inCodeBlock = false;
         codeLang = '';
@@ -106,13 +120,52 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
       return;
     }
 
-    // Blockquotes & Callouts
+    // Blockquotes & Callouts (> **INFO: ...**)
     if (trimmed.startsWith('> ')) {
-      elements.push(
-        <blockquote key={`quote-${index}`} className="my-3 pl-4 py-2 border-l-4 border-indigo-500 bg-indigo-500/10 text-indigo-200 text-xs italic rounded-r-xl">
-          {formatInline(trimmed.slice(2))}
-        </blockquote>
-      );
+      const blockText = trimmed.slice(2);
+      let isCallout = false;
+      let calloutType = 'info';
+      let title = 'Key Point';
+      let bodyText = blockText;
+
+      const calloutMatch = blockText.match(/^\*\*(INFO|WARNING|TIP|NOTE|DANGER):\s*(.*?)\*\*\s*(.*)/i);
+      if (calloutMatch) {
+        isCallout = true;
+        calloutType = calloutMatch[1].toLowerCase();
+        title = calloutMatch[2] || 'Key Note';
+        bodyText = calloutMatch[3] || '';
+      }
+
+      if (isCallout) {
+        const bgStyles = 
+          calloutType === 'warning' || calloutType === 'danger'
+            ? 'from-amber-950/40 via-orange-950/30 to-amber-950/40 border-amber-500/40 text-amber-200'
+            : calloutType === 'tip'
+            ? 'from-emerald-950/40 via-teal-950/30 to-emerald-950/40 border-emerald-500/40 text-emerald-200'
+            : 'from-indigo-950/40 via-purple-950/30 to-indigo-950/40 border-indigo-500/40 text-indigo-200';
+
+        elements.push(
+          <div key={`callout-${index}`} className={`my-4 p-4 rounded-2xl bg-gradient-to-r ${bgStyles} border backdrop-blur-md shadow-xl flex flex-col gap-2`}>
+            <div className="flex items-center gap-2">
+              {calloutType === 'warning' || calloutType === 'danger' ? (
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              ) : calloutType === 'tip' ? (
+                <Lightbulb className="w-4 h-4 text-emerald-400 shrink-0" />
+              ) : (
+                <Info className="w-4 h-4 text-indigo-400 shrink-0" />
+              )}
+              <span className="font-extrabold text-xs tracking-wide uppercase text-white">{title}</span>
+            </div>
+            {bodyText && <div className="text-xs leading-relaxed text-gray-200 pl-6">{formatInline(bodyText)}</div>}
+          </div>
+        );
+      } else {
+        elements.push(
+          <blockquote key={`quote-${index}`} className="my-3 pl-4 py-2.5 border-l-4 border-indigo-500 bg-indigo-500/10 text-indigo-200 text-xs italic rounded-r-2xl backdrop-blur-sm">
+            {formatInline(blockText)}
+          </blockquote>
+        );
+      }
       return;
     }
 

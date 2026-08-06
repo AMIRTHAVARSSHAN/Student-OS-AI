@@ -51,17 +51,32 @@ def generate_structured_note(topic: str, subject_name: str = "", language: str =
     schema_json = json.dumps(NoteStructure.model_json_schema(), indent=2)
 
     prompt = f"""
-    You are an expert AI academic tutor. Generate a comprehensive, high-quality, structured academic study note for the topic: "{topic}".
+    You are a world-class university professor and academic researcher.
+    Generate an EXHAUSTIVE, DEEP, IN-DEPTH, HIGHLY DETAILED academic study note for the topic: "{topic}".
+    Subject Context: {subject_name or 'General Academic'}.
     Language preference: {language}.
-    Subject Context: {subject_name}.
     
     {context}
+    
+    CRITICAL INSTRUCTIONS FOR EXHAUSTIVE CONTENT:
+    1. Do NOT write brief summaries. Write a comprehensive, university-level study guide (at least 15 to 20 detailed blocks).
+    2. Include thorough explanations, underlying mechanisms, formulas, and real-world exam prep material.
+    3. Structural Requirements:
+       - Heading 1: Executive Overview & Fundamental Definitions
+       - Multiple detailed Paragraph blocks explaining core principles in depth
+       - Callout block (callout_type: 'info', title: 'Core Principle'): Essential Axiom or Definition
+       - Heading 1: Step-by-Step Mechanism / Process Workflow
+       - Mermaid Diagram block (block_type: 'mermaid'): MANDATORY visual flowchart in valid Mermaid syntax (e.g., `graph TD\n  A[Step 1] -->|Process| B[Step 2]...`) mapping the process visually!
+       - Heading 1: Technical Deep Dive & Key Sub-Topics (with Heading 2 and Heading 3 blocks)
+       - Callout block (callout_type: 'warning', title: 'Exam Pitfalls & Common Errors')
+       - Code / Equation block (block_type: 'code'): Code snippet (e.g. Python, BioPython, C++) or mathematical formula
+       - Heading 1: Real-world Applications & Industry / Clinical Case Studies
+       - Flashcard blocks (block_type: 'flashcard'): At least 3-4 active recall flashcard blocks with front questions and back answers.
     
     Format the output strictly as a JSON object matching this JSON Schema:
     {schema_json}
 
-    Make sure to include visual elements (mermaid diagrams, callouts), code examples if applicable, and flashcards.
-    Do NOT output any markdown backticks around the JSON. Output ONLY raw valid JSON matching the schema.
+    Do NOT output any markdown code blocks around the JSON. Output ONLY raw valid JSON matching the schema.
     """
     
     last_err = None
@@ -70,11 +85,12 @@ def generate_structured_note(topic: str, subject_name: str = "", language: str =
             res = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a specialized JSON generator for academic notes. Always reply in valid JSON format."},
+                    {"role": "system", "content": "You are a specialized JSON generator for exhaustive academic notes. Always reply in valid JSON format."},
                     {"role": "user", "content": prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.3
+                temperature=0.3,
+                max_tokens=8192
             )
             content = res.choices[0].message.content
             if content:
