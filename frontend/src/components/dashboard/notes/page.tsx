@@ -69,6 +69,7 @@ export default function NotesPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [copied, setCopied] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,6 +117,8 @@ export default function NotesPage() {
       queryClient.invalidateQueries({ queryKey: ['notes'] });
       setActiveNote(updatedNote);
       setIsEditingActive(false);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
     },
   });
 
@@ -603,6 +606,28 @@ export default function NotesPage() {
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
                   {copied ? 'Copied!' : 'Copy'}
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateMutation.mutate({
+                      id: activeNote.id,
+                      payload: {
+                        title: editTitle || activeNote.title,
+                        content: editContent || activeNote.content,
+                      },
+                    })
+                  }
+                  disabled={updateMutation.isPending}
+                  title="Save note changes to database"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 hover:text-white text-[11px] sm:text-xs font-bold flex items-center gap-1 transition"
+                >
+                  {savedSuccess ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  {savedSuccess ? 'Saved! 💾' : 'Save Note'}
                 </button>
 
                 <button

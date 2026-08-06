@@ -51,27 +51,26 @@ def generate_structured_note(topic: str, subject_name: str = "", language: str =
     schema_json = json.dumps(NoteStructure.model_json_schema(), indent=2)
 
     prompt = f"""
-    You are a world-class university professor and academic researcher.
-    Generate an EXHAUSTIVE, DEEP, IN-DEPTH, HIGHLY DETAILED academic study note for the topic: "{topic}".
+    You are a distinguished university professor and authoritative textbook author.
+    Generate an EXHAUSTIVE, MASSIVE, IN-DEPTH, HIGHLY DETAILED academic study guide for the topic: "{topic}".
     Subject Context: {subject_name or 'General Academic'}.
     Language preference: {language}.
     
     {context}
     
-    CRITICAL INSTRUCTIONS FOR EXHAUSTIVE CONTENT:
-    1. Do NOT write brief summaries. Write a comprehensive, university-level study guide (at least 15 to 20 detailed blocks).
-    2. Include thorough explanations, underlying mechanisms, formulas, and real-world exam prep material.
+    CRITICAL RULES FOR RELEVANCE & DEPTH:
+    1. STRICT RULE ON CODE BLOCKS: Do NOT include programming code blocks (e.g. Python, Machine Learning, C++) UNLESS the topic is directly a Computer Science / Software Engineering topic! For non-programming topics (like Microbiology, Biology, Medicine, History, Chemistry, Law), DO NOT generate code blocks. Instead, generate deep academic paragraphs, chemical/biological mechanisms, or mathematical equations!
+    2. EXHAUSTIVE DEPTH: Do NOT write short or high-level notes. Provide a comprehensive 2000+ word study guide with 20 to 30 detailed blocks. Expand thoroughly on every concept, mechanism, classification, and real-world application.
     3. Structural Requirements:
        - Heading 1: Executive Overview & Fundamental Definitions
-       - Multiple detailed Paragraph blocks explaining core principles in depth
+       - Multiple long, detailed Paragraph blocks thoroughly defining all terms
        - Callout block (callout_type: 'info', title: 'Core Principle'): Essential Axiom or Definition
-       - Heading 1: Step-by-Step Mechanism / Process Workflow
-       - Mermaid Diagram block (block_type: 'mermaid'): MANDATORY visual flowchart in valid Mermaid syntax (e.g., `graph TD\n  A[Step 1] -->|Process| B[Step 2]...`) mapping the process visually!
-       - Heading 1: Technical Deep Dive & Key Sub-Topics (with Heading 2 and Heading 3 blocks)
-       - Callout block (callout_type: 'warning', title: 'Exam Pitfalls & Common Errors')
-       - Code / Equation block (block_type: 'code'): Code snippet (e.g. Python, BioPython, C++) or mathematical formula
-       - Heading 1: Real-world Applications & Industry / Clinical Case Studies
-       - Flashcard blocks (block_type: 'flashcard'): At least 3-4 active recall flashcard blocks with front questions and back answers.
+       - Heading 1: Comprehensive Step-by-Step Mechanisms & Biological / System Workflows
+       - Mermaid Diagram block (block_type: 'mermaid'): MANDATORY visual flowchart in valid Mermaid syntax mapping the workflow visually (e.g., `graph TD\n  A[Stage 1] -->|Mechanism| B[Stage 2]...`)
+       - Heading 1: In-Depth Technical Analysis & Sub-Classifications (with Heading 2 and Heading 3 blocks for each sub-topic)
+       - Callout block (callout_type: 'warning', title: 'Exam Pitfalls & High-Yield Revision Warnings')
+       - Heading 1: Real-world Applications, Clinical / Industry Case Studies
+       - Flashcard blocks (block_type: 'flashcard'): At least 4-6 active recall flashcard blocks covering high-yield exam questions.
     
     Format the output strictly as a JSON object matching this JSON Schema:
     {schema_json}
