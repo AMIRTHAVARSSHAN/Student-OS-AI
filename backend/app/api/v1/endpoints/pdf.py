@@ -38,34 +38,114 @@ def format_file_size(size_bytes: int) -> str:
     else:
         return f"{size_bytes / (1024 * 1024):.1f} MB"
 
+def extract_pdf_content(file_bytes: bytes, filename: str) -> tuple[int, str]:
+    """
+    Multi-tier PDF parser:
+    1. Try PyMuPDF (fitz) - ultra fast & handles complex layout/fonts.
+    2. Try pdfplumber - handles tables and vector streams.
+    3. Try pypdf - basic fallback.
+    4. If text < 100 chars (scanned image PDF), use Groq Vision OCR!
+    """
+    page_count = 0
+    extracted_text = ""
+    pages_text = []
+
+    # TIER 1: PyMuPDF (fitz)
+    try:
+        import fitz
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        page_count = len(doc)
+        for idx, page in enumerate(doc):
+            t = page.get_text("text") or ""
+            if t.strip():
+                pages_text.append(f"--- PAGE {idx + 1} ---\n{t.strip()}")
+        extracted_text = "\n\n".join(pages_text)
+    except Exception as e:
+        logger.warning(f"PyMuPDF failed for {filename}: {e}")
+
+    # TIER 2: pdfplumber if text is empty
+    if not extracted_text.strip():
+        try:
+            import pdfplumber, io
+            with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+                page_count = len(pdf.pages)
+                pages_text = []
+                for idx, page in enumerate(pdf.pages):
+                    t = page.extract_text() or ""
+                    if t.strip():
+                        pages_text.append(f"--- PAGE {idx + 1} ---\n{t.strip()}")
+                extracted_text = "\n\n".join(pages_text)
+        except Exception as e:
+            logger.warning(f"pdfplumber failed for {filename}: {e}")
+
+    # TIER 3: pypdf fallback
+    if not extracted_text.strip():
+        try:
+            import io
+            reader = PdfReader(io.BytesIO(file_bytes))
+            page_count = len(reader.pages)
+            pages_text = []
+            for idx, page in enumerate(reader.pages):
+                t = page.extract_text() or ""
+                if t.strip():
+                    pages_text.append(f"--- PAGE {idx + 1} ---\n{t.strip()}")
+            extracted_text = "\n\n".join(pages_text)
+        except Exception as e:
+            logger.warning(f"pypdf failed for {filename}: {e}")
+
+    # TIER 4: Groq Vision OCR if text is still under 100 characters (scanned image PDF)
+    if len(extracted_text.strip()) < 100:
+        logger.info(f"PDF {filename} appears to be scanned images. Triggering Groq Vision OCR...")
+        try:
+            import fitz, base64
+            api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
+            if api_key:
+                client = Groq(api_key=api_key)
+                doc = fitz.open(stream=file_bytes, filetype="pdf")
+                page_count = len(doc)
+                ocr_pages = []
+                for idx, page in enumerate(doc[:10]): # OCR first 10 pages max
+                    pix = page.get_pixmap(dpi=150)
+                    img_bytes = pix.tobytes("png")
+                    base64_img = base64.b64encode(img_bytes).decode("utf-8")
+                    
+                    ocr_res = client.chat.completions.create(
+                        model="llama-3.2-11b-vision-preview",
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": "Extract all text, headers, numbers, and tabular data from this scanned PDF page into clean markdown text."},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_img}"}}
+                                ]
+                            }
+                        ],
+                        max_tokens=2048
+                    )
+                    page_txt = ocr_res.choices[0].message.content if ocr_res.choices else ""
+                    if page_txt.strip():
+                        ocr_pages.append(f"--- PAGE {idx + 1} (OCR) ---\n{page_txt.strip()}")
+                if ocr_pages:
+                    extracted_text = "\n\n".join(ocr_pages)
+        except Exception as e:
+            logger.warning(f"Groq Vision OCR failed for {filename}: {e}")
+
+    return page_count, extracted_text
+
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_pdf(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Uploads a real PDF file, extracts page count and text via PyPDF, and stores metadata in user's backend database."""
+    """Uploads a real PDF file, extracts page count and text via multi-tier PyMuPDF/pdfplumber/OCR, and stores metadata in database."""
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF documents (.pdf) are supported.")
 
     file_bytes = await file.read()
     file_size_str = format_file_size(len(file_bytes))
 
-    # Parse PDF using pypdf
-    page_count = 0
-    extracted_text = ""
-    try:
-        import io
-        pdf_reader = PdfReader(io.BytesIO(file_bytes))
-        page_count = len(pdf_reader.pages)
-        pages_text = []
-        for idx, page in enumerate(pdf_reader.pages):
-            txt = page.extract_text() or ""
-            if txt.strip():
-                pages_text.append(f"--- PAGE {idx + 1} ---\n{txt}")
-        extracted_text = "\n\n".join(pages_text)
-    except Exception as e:
-        logger.warning(f"Error parsing PDF text for {file.filename}: {e}")
+    page_count, extracted_text = extract_pdf_content(file_bytes, file.filename)
 
     # Save file to disk
     doc_id_prefix = current_user.id[:8]
