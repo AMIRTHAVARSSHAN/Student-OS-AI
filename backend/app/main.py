@@ -37,13 +37,22 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.get("/", tags=["root"])
+async def root():
+    return {
+        "message": "Welcome to ScholarOS AI API",
+        "status": "online",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
 @app.get("/health", tags=["health"])
 async def health_check():
