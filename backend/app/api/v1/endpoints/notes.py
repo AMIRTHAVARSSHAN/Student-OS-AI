@@ -11,7 +11,7 @@ from app.models.subject import Subject
 from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse, AINoteGenerateRequest
 from app.core.database import get_db
 from app.core.config import settings
-from app.services.ai_generator import generate_structured_note
+from app.services.notes_pipeline.pipeline_orchestrator import generate_full_enterprise_note
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -50,12 +50,16 @@ async def generate_ai_note(
     Generates a structured, block-based academic study note using Google Gemini and saves it directly into the user's database.
     """
     
-    note_structure = generate_structured_note(
+    pipeline_res = generate_full_enterprise_note(
         topic=req.topic,
         subject_name=req.subject_name or "",
         language=req.language or "en",
         source_text=req.source_text or ""
     )
+
+    blueprint = pipeline_res["blueprint"]
+    full_content = pipeline_res["full_markdown"]
+    db_blocks = pipeline_res["db_blocks"]
 
     # Resolve optional subject_id if subject_name matches user's subjects
     subject_id = None
@@ -69,49 +73,21 @@ async def generate_ai_note(
         if subj_obj:
             subject_id = subj_obj.id
 
-    # Compile blocks to rich Markdown content
-    compiled_md = [f"# {note_structure.title}\n"]
-    for b in note_structure.blocks:
-        b_type = b.block_type
-        c = b.content
-        if b_type == "heading_1":
-            compiled_md.append(f"## {c.title or c.text or ''}")
-        elif b_type == "heading_2":
-            compiled_md.append(f"### {c.title or c.text or ''}")
-        elif b_type == "heading_3":
-            compiled_md.append(f"#### {c.title or c.text or ''}")
-        elif b_type == "paragraph":
-            compiled_md.append(f"{c.text or ''}")
-        elif b_type == "callout":
-            c_type = (c.callout_type or "info").upper()
-            c_title = c.title or "Key Point"
-            compiled_md.append(f"> **{c_type}: {c_title}**\n> {c.text or ''}")
-        elif b_type in ["code", "mermaid"]:
-            lang = c.language or ("mermaid" if b_type == "mermaid" else "")
-            compiled_md.append(f"```{lang}\n{c.code or c.text or ''}\n```")
-        elif b_type == "flashcard":
-            compiled_md.append(f"**🎴 Key Revision Flashcard**\n- **Q**: {c.front or ''}\n- **A**: {c.back or ''}")
-        else:
-            if c.text:
-                compiled_md.append(f"{c.text}")
-
-    full_content = "\n\n".join(compiled_md)
     word_count = len(full_content.split())
 
     note = Note(
         user_id=current_user.id,
         subject_id=subject_id,
-        title=note_structure.title,
+        title=blueprint.title,
         content=full_content,
         plain_text=full_content[:500],
         source="ai-generated",
-        tags=[req.topic.lower(), "ai-generated"],
+        tags=blueprint.tags or [req.topic.lower(), "ai-generated"],
         topic=req.topic,
         word_count=word_count,
-        cover_image=note_structure.cover_image_prompt,
-        icon=note_structure.icon,
-        estimated_reading_time=note_structure.estimated_reading_time,
-        difficulty_level=note_structure.difficulty_level
+        icon="📚",
+        estimated_reading_time=blueprint.estimated_reading_time,
+        difficulty_level=blueprint.difficulty
     )
 
     db.add(note)
@@ -127,12 +103,12 @@ async def generate_ai_note(
     db.add(source)
 
     # Create Note Blocks
-    for i, block_content in enumerate(note_structure.blocks):
+    for b_data in db_blocks:
         block = NoteBlock(
             note_id=note.id,
-            block_type=block_content.block_type,
-            content=block_content.content.model_dump(exclude_none=True),
-            order=i
+            block_type=b_data["block_type"],
+            content=b_data["content"],
+            order=b_data["order"]
         )
         db.add(block)
 

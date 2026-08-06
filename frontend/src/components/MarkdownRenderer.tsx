@@ -128,32 +128,37 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
       let title = 'Key Point';
       let bodyText = blockText;
 
-      const calloutMatch = blockText.match(/^\*\*(INFO|WARNING|TIP|NOTE|DANGER):\s*(.*?)\*\*\s*(.*)/i);
+      const calloutMatch = blockText.match(/^\*\*(INFO|WARNING|TIP|NOTE|DANGER|DEFINITION|IMPORTANT|DID_YOU_KNOW|EXAM_TIP|MEMORY_TRICK|COMMON_MISTAKE|FORMULA|HIGH_WEIGHTAGE):\s*(.*?)\*\*\s*(.*)/i);
       if (calloutMatch) {
         isCallout = true;
         calloutType = calloutMatch[1].toLowerCase();
-        title = calloutMatch[2] || 'Key Note';
+        title = calloutMatch[2] || calloutMatch[1].toUpperCase().replace('_', ' ');
         bodyText = calloutMatch[3] || '';
       }
 
       if (isCallout) {
-        const bgStyles = 
-          calloutType === 'warning' || calloutType === 'danger'
-            ? 'from-amber-950/40 via-orange-950/30 to-amber-950/40 border-amber-500/40 text-amber-200'
-            : calloutType === 'tip'
-            ? 'from-emerald-950/40 via-teal-950/30 to-emerald-950/40 border-emerald-500/40 text-emerald-200'
-            : 'from-indigo-950/40 via-purple-950/30 to-indigo-950/40 border-indigo-500/40 text-indigo-200';
+        let bgStyles = 'from-indigo-950/40 via-purple-950/30 to-indigo-950/40 border-indigo-500/40 text-indigo-200';
+        let IconComponent = Info;
+        let iconColor = 'text-indigo-400';
+
+        if (calloutType.includes('warning') || calloutType.includes('danger') || calloutType.includes('mistake')) {
+          bgStyles = 'from-rose-950/40 via-amber-950/30 to-rose-950/40 border-rose-500/40 text-rose-200';
+          IconComponent = AlertTriangle;
+          iconColor = 'text-rose-400';
+        } else if (calloutType.includes('tip') || calloutType.includes('memory') || calloutType.includes('know')) {
+          bgStyles = 'from-emerald-950/40 via-teal-950/30 to-emerald-950/40 border-emerald-500/40 text-emerald-200';
+          IconComponent = Lightbulb;
+          iconColor = 'text-emerald-400';
+        } else if (calloutType.includes('formula') || calloutType.includes('important') || calloutType.includes('weightage')) {
+          bgStyles = 'from-purple-950/40 via-indigo-950/30 to-purple-950/40 border-purple-500/40 text-purple-200';
+          IconComponent = CheckCircle2;
+          iconColor = 'text-purple-400';
+        }
 
         elements.push(
           <div key={`callout-${index}`} className={`my-4 p-4 rounded-2xl bg-gradient-to-r ${bgStyles} border backdrop-blur-md shadow-xl flex flex-col gap-2`}>
             <div className="flex items-center gap-2">
-              {calloutType === 'warning' || calloutType === 'danger' ? (
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-              ) : calloutType === 'tip' ? (
-                <Lightbulb className="w-4 h-4 text-emerald-400 shrink-0" />
-              ) : (
-                <Info className="w-4 h-4 text-indigo-400 shrink-0" />
-              )}
+              <IconComponent className={`w-4 h-4 ${iconColor} shrink-0`} />
               <span className="font-extrabold text-xs tracking-wide uppercase text-white">{title}</span>
             </div>
             {bodyText && <div className="text-xs leading-relaxed text-gray-200 pl-6">{formatInline(bodyText)}</div>}
