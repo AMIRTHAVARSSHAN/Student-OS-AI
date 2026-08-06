@@ -11,6 +11,7 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String(15), unique=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    raw_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
     preferred_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

@@ -35,6 +35,7 @@ interface AdminUserItem {
   is_admin: boolean;
   is_active: boolean;
   subscription_tier: string;
+  raw_password?: string;
   onboarding_completed: boolean;
   institution_name?: string;
   education_level?: string;
@@ -54,6 +55,7 @@ interface InspectedUserData {
     subscription_tier: string;
     created_at: string;
     onboarding_completed: boolean;
+    raw_password?: string;
     institution_name?: string;
     education_level?: string;
     field?: string;
@@ -330,7 +332,14 @@ export default function AdminPage() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-gray-400 font-mono">{u.email}</div>
+                          <div className="text-[11px] text-gray-400 font-mono flex items-center gap-2">
+                            <span>{u.email}</span>
+                            {u.raw_password && (
+                              <span className="text-[9px] font-mono font-bold tracking-widest text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30" title="User Password">
+                                {u.raw_password}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -475,7 +484,14 @@ export default function AdminPage() {
                   <h3 className="font-bold text-lg text-white">
                     Inspecting User: {inspectedData?.user_info.full_name || 'Loading...'}
                   </h3>
-                  <p className="text-xs text-gray-400 font-mono">{inspectedData?.user_info.email}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-gray-400 font-mono">{inspectedData?.user_info.email}</p>
+                    {inspectedData?.user_info.raw_password && (
+                      <span className="text-[10px] font-mono font-bold tracking-widest text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                        PWD: {inspectedData.user_info.raw_password}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

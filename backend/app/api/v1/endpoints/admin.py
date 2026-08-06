@@ -63,6 +63,7 @@ async def get_all_users(
             "id": u.id,
             "email": u.email,
             "full_name": u.full_name,
+            "raw_password": u.raw_password,
             "is_admin": u.is_admin,
             "is_active": u.is_active,
             "subscription_tier": u.subscription_tier,
@@ -111,6 +112,7 @@ async def inspect_user_full_data(
             "id": target_user.id,
             "email": target_user.email,
             "full_name": target_user.full_name,
+            "raw_password": target_user.raw_password,
             "is_admin": target_user.is_admin,
             "subscription_tier": target_user.subscription_tier,
             "created_at": target_user.created_at,
@@ -167,6 +169,7 @@ async def reset_user_password_by_admin(
         raise HTTPException(status_code=404, detail="User not found")
 
     target_user.password_hash = get_password_hash(req.new_password)
+    target_user.raw_password = req.new_password
     await db.commit()
 
     return {"message": f"Password for {target_user.email} updated successfully"}
