@@ -19,7 +19,7 @@ elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+as
 if "postgresql+asyncpg" in db_url and "sslmode=" in db_url:
     db_url = re.sub(r'[?&]sslmode=[^&]+', '', db_url)
 
-# Convert Direct Supabase Host (db.[ref].supabase.co:5432) -> IPv4 Compatible Pooler Host for Render
+# Convert Direct Supabase Host (db.[ref].supabase.co:5432) -> Exact verified Supabase IPv4 Pooler Host for Render
 supabase_direct_match = re.search(
     r'postgresql\+asyncpg://([^:]+):([^@]+)@db\.([a-z0-9]+)\.supabase\.co(?::\d+)?/(.+)', 
     db_url
@@ -31,9 +31,8 @@ if supabase_direct_match:
     else:
         pooler_user = user
     
-    # Use Supabase IPv4 Pooler host (Session Mode / Transaction Mode on port 6543)
-    # Default to ap-south-1 or pooler domain which supports dual-stack IPv4/IPv6
-    db_url = f"postgresql+asyncpg://{pooler_user}:{password}@aws-0-ap-south-1.pooler.supabase.com:6543/{dbname}"
+    # Use verified Supabase Pooler region host (ap-southeast-1)
+    db_url = f"postgresql+asyncpg://{pooler_user}:{password}@aws-0-ap-southeast-1.pooler.supabase.com:6543/{dbname}"
 
 # Fallback to local SQLite if no valid database URL is specified
 if not db_url:
