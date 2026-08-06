@@ -26,7 +26,7 @@ interface PDFDocument {
   id: string;
   filename: string;
   file_path?: string;
-  file_size: str;
+  file_size: number | string;
   page_count: number;
   summary?: string;
   created_at: string;
