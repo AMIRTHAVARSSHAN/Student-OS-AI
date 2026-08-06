@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useAppStore } from '@/stores/app-store';
+import Link from 'next/link';
 import { 
   CalendarDays, 
   Sparkles, 
@@ -44,19 +45,19 @@ export default function StudyPlanPage() {
     },
   });
 
-  // 3. Fetch today's study blocks from backend
-  const { data: todayBlocks, isLoading: todayLoading } = useQuery({
-    queryKey: ['today_blocks'],
+  // 4. Fetch all user notes to allow attaching/linking notes to study blocks
+  const { data: notesVault } = useQuery({
+    queryKey: ['notes'],
     queryFn: async () => {
-      const res = await apiClient.get('/study-plans/today');
+      const res = await apiClient.get('/notes');
       return res.data || [];
     },
   });
 
-  // Toggle block completion mutation
-  const toggleCompleteMutation = useMutation({
-    mutationFn: async (blockId: string) => {
-      const res = await apiClient.patch(`/study-plans/blocks/${blockId}/complete`);
+  // Link Note Mutation
+  const linkNoteMutation = useMutation({
+    mutationFn: async ({ blockId, noteId }: { blockId: string; noteId: string }) => {
+      const res = await apiClient.patch(`/study-plans/blocks/${blockId}/link-note`, { note_id: noteId });
       return res.data;
     },
     onSuccess: () => {
@@ -208,17 +209,46 @@ export default function StudyPlanPage() {
                   <h3 className="font-bold text-sm text-white leading-tight">{block.topic}</h3>
                 </div>
 
-                <button
-                  onClick={() => toggleCompleteMutation.mutate(block.id)}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
-                    block.is_completed
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-[var(--surface-2)] text-gray-200 hover:bg-indigo-600 hover:text-white'
-                  }`}
-                >
-                  <CheckCircle2 className={`w-4 h-4 ${block.is_completed ? 'text-emerald-400' : ''}`} />
-                  {block.is_completed ? 'Completed ✓' : 'Mark Completed'}
-                </button>
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    onClick={() => toggleCompleteMutation.mutate(block.id)}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
+                      block.is_completed
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-[var(--surface-2)] text-gray-200 hover:bg-indigo-600 hover:text-white'
+                    }`}
+                  >
+                    <CheckCircle2 className={`w-4 h-4 ${block.is_completed ? 'text-emerald-400' : ''}`} />
+                    {block.is_completed ? 'Completed ✓' : 'Mark Completed'}
+                  </button>
+
+                  {block.note_id ? (
+                    <Link
+                      href="/notes"
+                      className="px-3 py-2.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition shrink-0"
+                    >
+                      <BookOpen className="w-4 h-4 text-purple-400" />
+                      View Note 📚
+                    </Link>
+                  ) : (
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          linkNoteMutation.mutate({ blockId: block.id, noteId: e.target.value });
+                        }
+                      }}
+                      defaultValue=""
+                      className="px-2 py-2 rounded-xl bg-[var(--surface-2)] border border-white/15 text-[11px] text-gray-300 focus:outline-none focus:border-indigo-500 max-w-[120px] truncate"
+                    >
+                      <option value="" disabled>+ Link Note</option>
+                      {notesVault?.map((n: any) => (
+                        <option key={n.id} value={n.id}>
+                          {n.title}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -295,6 +325,16 @@ export default function StudyPlanPage() {
                           <span className="text-[11px] text-gray-400 font-mono">
                             {blk.start_time ? blk.start_time.slice(0, 5) : '09:00'} - {blk.end_time ? blk.end_time.slice(0, 5) : '10:30'}
                           </span>
+                          
+                          {blk.note_id && (
+                            <Link
+                              href="/notes"
+                              className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition"
+                            >
+                              Notes 📚
+                            </Link>
+                          )}
+
                           <button
                             onClick={() => toggleCompleteMutation.mutate(blk.id)}
                             className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition ${

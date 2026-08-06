@@ -32,7 +32,9 @@ class StudyBlock(Base, TimestampMixin):
     priority: Mapped[str] = mapped_column(String(10), default="medium", nullable=False)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     actual_duration_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    note_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("notes.id", ondelete="SET NULL"), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     plan = relationship("StudyPlan", back_populates="blocks")
     subject = relationship("Subject")
+    linked_note = relationship("Note")

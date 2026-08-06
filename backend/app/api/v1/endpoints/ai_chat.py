@@ -17,6 +17,7 @@ from app.models.study_plan import StudyPlan, StudyBlock
 from app.models.subject import Subject
 from app.schemas.ai_chat import AIChatMessage
 from app.services.ai_service import ai_service
+from app.services.notes_pipeline.pipeline_orchestrator import generate_full_enterprise_note
 from app.core.database import get_db, AsyncSessionLocal
 
 router = APIRouter()
@@ -77,68 +78,92 @@ async def create_notes_in_db(user_id: str, topic: str, content: str) -> str:
         await db.refresh(note)
         return note.id
 
-async def create_study_plan_and_notes_in_db(user_id: str, topic: str, content: str) -> str:
+async def create_study_plan_and_notes_in_db(user_id: str, topic: str, user_instructions: str = "") -> dict:
     async with AsyncSessionLocal() as db:
         subj = await ensure_default_subject(db, user_id)
         clean_topic = topic.title()
 
-        # 1. Create Study Note in DB
+        # STAGE 1: Generate Deep Enterprise Note via 5-Stage Pipeline
+        logger.info(f"Generating Enterprise Study Note for Study Plan: {clean_topic}")
+        pipeline_res = generate_full_enterprise_note(
+            topic=clean_topic,
+            subject_name=subj.name,
+            language="en"
+        )
+        blueprint = pipeline_res["blueprint"]
+        full_content = pipeline_res["full_markdown"]
+        db_blocks = pipeline_res["db_blocks"]
+
+        total_study_mins = blueprint.estimated_study_time or 180
+        hours = total_study_mins // 60
+        mins = total_study_mins % 60
+        study_time_str = f"{hours}h {mins}m" if hours > 0 else f"{mins} mins"
+
+        # STAGE 2: Save Note to Database Memory
         note = Note(
             user_id=user_id,
             subject_id=subj.id,
-            title=f"Study Plan Notes: {clean_topic}",
-            content=content,
-            plain_text=content,
+            title=f"Study Guide & Notes: {blueprint.title}",
+            content=full_content,
+            plain_text=full_content[:500],
             source="ai-study-plan",
-            tags=["scholar-ai", "study-plan", clean_topic.lower()],
+            tags=blueprint.tags or ["study-plan", clean_topic.lower()],
             topic=clean_topic,
-            word_count=len(content.split())
+            word_count=len(full_content.split()),
+            icon="📚",
+            estimated_reading_time=blueprint.estimated_reading_time,
+            difficulty_level=blueprint.difficulty
         )
         db.add(note)
+        await db.flush()
 
-        # 2. Create Study Plan in DB
+        # STAGE 3: Create Study Plan & Link Notes to Study Blocks
         today_date = date.today()
         end_date = today_date + timedelta(days=5)
 
         plan = StudyPlan(
             user_id=user_id,
-            title=f"5-Day Mastery Plan: {clean_topic}",
+            title=f"5-Day Study Plan: {blueprint.title} ({study_time_str} Total)",
             start_date=today_date,
             end_date=end_date,
             plan_type="weekly",
             status="active",
-            generation_context={"topic": clean_topic, "generated_by": "Scholar AI"}
+            generation_context={
+                "topic": clean_topic,
+                "note_id": note.id,
+                "total_study_minutes": total_study_mins,
+                "generated_by": "Scholar AI"
+            }
         )
         db.add(plan)
-        await db.commit()
-        await db.refresh(plan)
+        await db.flush()
 
-        # 3. Create 5 Daily Study Blocks
-        daily_topics = [
-            f"Day 1: Foundations & Core Concepts of {clean_topic}",
-            f"Day 2: Mathematical Formulation & Rules of {clean_topic}",
-            f"Day 3: Implementation, Algorithms & Code for {clean_topic}",
-            f"Day 4: Performance Evaluation & Optimization for {clean_topic}",
-            f"Day 5: Exam Practice Questions & Problem Solving for {clean_topic}"
-        ]
+        daily_duration_mins = max(30, total_study_mins // 5)
 
-        for idx, block_topic in enumerate(daily_topics):
+        for idx, sec_bp in enumerate(blueprint.sections[:5]):
             block_date = today_date + timedelta(days=idx)
             block = StudyBlock(
                 plan_id=plan.id,
                 subject_id=subj.id,
+                note_id=note.id, # LINK NOTE DIRECTLY TO STUDY BLOCK
                 date=block_date,
-                start_time=time(9, 0),
-                end_time=time(10, 30),
-                topic=block_topic,
+                start_time=time(9 + (idx % 3) * 2, 0),
+                end_time=time(9 + (idx % 3) * 2 + (daily_duration_mins // 60), daily_duration_mins % 60),
+                topic=f"Day {idx + 1}: {sec_bp.title}",
                 priority="high" if idx < 2 else "medium",
                 is_completed=False,
-                notes=f"Study block created by Scholar AI for {clean_topic}."
+                notes=f"Key focus: {', '.join(sec_bp.key_points_to_cover[:3])}"
             )
             db.add(block)
 
         await db.commit()
-        return plan.id
+        return {
+            "plan_id": plan.id,
+            "note_id": note.id,
+            "note_title": note.title,
+            "study_time_str": study_time_str,
+            "full_content": full_content
+        }
 
 @router.post("/chat")
 async def chat_stream(
@@ -232,26 +257,18 @@ async def chat_stream(
 
         # Special Action Execution for Notes & Study Plans
         if is_study_plan_request:
-            action_prompt = f"""
-            Generate a detailed 5-day Study Plan and comprehensive Markdown Study Notes for the topic: "{topic_name}".
-            Structure the response using GitHub Flavored Markdown:
-            - Start with `# 📅 5-Day Study Plan: {topic_name}`
-            - Provide Day 1 to Day 5 breakdown with Goals, Topics, Formulas/Math, Code/Examples, and Actionable Tasks.
-            - Provide a `# 📝 Comprehensive Study Notes: {topic_name}` section with full definitions, equations, and exam revision summary points.
-            """
-            generated_content = await ai_service.generate_text_single(action_prompt)
-            if not generated_content:
-                generated_content = f"# 📅 Study Plan: {topic_name}\n\nPlan created successfully."
-
-            # Save Study Plan & Notes to Database
+            # Execute Think, Plan, Note Generation & Schedule Allocation
             try:
-                plan_id = await create_study_plan_and_notes_in_db(current_user.id, topic_name, generated_content)
-                logger.info(f"Created StudyPlan {plan_id} and Note in database for user {current_user.id}")
-            except Exception as e:
-                logger.error(f"Failed to save study plan to database: {e}")
+                plan_info = await create_study_plan_and_notes_in_db(current_user.id, topic_name, user_text)
+                note_content = plan_info["full_content"]
+                study_time_str = plan_info["study_time_str"]
+                note_title = plan_info["note_title"]
 
-            action_badge = f"\n\n---\n✅ **Action Completed:** Created 5-Day Study Plan in database & generated Markdown Notes saved to your Notes Vault memory! 🚀"
-            collected_response = generated_content + action_badge
+                action_badge = f"\n\n---\n✅ **Action Executed:** Created 5-Day Study Plan with **{study_time_str}** total estimated study duration! Linked study guide note **[{note_title}](/notes)** saved directly to your Notes Memory database! 🧠💾"
+                collected_response = note_content + action_badge
+            except Exception as e:
+                logger.error(f"Failed to generate study plan & notes: {e}")
+                collected_response = f"Failed to generate study plan: {e}"
 
             yield f"data: {json.dumps({'type': 'text', 'content': collected_response})}\n\n"
 

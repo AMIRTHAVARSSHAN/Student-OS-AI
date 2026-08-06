@@ -11,6 +11,7 @@ class StudyBlockCreate(BaseModel):
     topic: str
     block_type: str = "study" # study, revision, practice, break
     priority: str = "medium" # high, medium, low
+    note_id: Optional[UUID] = None
 
 class StudyBlockResponse(BaseModel):
     id: UUID
@@ -24,6 +25,7 @@ class StudyBlockResponse(BaseModel):
     priority: str
     is_completed: bool
     actual_duration_minutes: Optional[int] = None
+    note_id: Optional[UUID] = None
 
     model_config = ConfigDict(from_attributes=True)
 

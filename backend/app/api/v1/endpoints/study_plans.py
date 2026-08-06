@@ -134,3 +134,31 @@ async def toggle_block_complete(
     await db.commit()
     await db.refresh(block)
     return block
+
+from pydantic import BaseModel
+
+class LinkNoteRequest(BaseModel):
+    note_id: Optional[str] = None
+
+@router.patch("/blocks/{block_id}/link-note", response_model=StudyBlockResponse)
+async def link_note_to_block(
+    block_id: str,
+    req: LinkNoteRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    query = (
+        select(StudyBlock)
+        .join(StudyPlan)
+        .where(StudyPlan.user_id == current_user.id)
+        .where(StudyBlock.id == block_id)
+    )
+    result = await db.execute(query)
+    block = result.scalars().first()
+    if not block:
+        raise HTTPException(status_code=404, detail="Study block not found")
+
+    block.note_id = str(req.note_id) if req.note_id else None
+    await db.commit()
+    await db.refresh(block)
+    return block
