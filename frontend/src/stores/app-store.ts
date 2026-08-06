@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   email: string;
   fullName: string;
+  avatar_url?: string;
+  avatarUrl?: string;
   preferredLanguage: 'en' | 'ta' | 'tanglish';
   subscriptionTier: 'free' | 'scholar' | 'scholar_pro';
   onboardingCompleted: boolean;
