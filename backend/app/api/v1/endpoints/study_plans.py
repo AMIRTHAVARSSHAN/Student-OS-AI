@@ -31,7 +31,7 @@ async def create_study_plan(
     await db.commit()
     await db.refresh(plan)
 
-    # Generate initial study blocks ONLY for subjects belonging to current_user
+    # Generate initial study blocks for ALL enrolled subjects of current_user across the 7 days
     res_subj = await db.execute(
         select(Subject).where(Subject.user_id == current_user.id)
     )
@@ -39,19 +39,26 @@ async def create_study_plan(
 
     if subjects:
         curr_date = req.start_date
+        day_offset = 0
         while curr_date <= req.end_date:
-            for idx, subj in enumerate(subjects[:3]): # Max 3 blocks per day
+            # Distribute subjects so every subject gets scheduled across days
+            num_subjects = len(subjects)
+            # Pick up to 5 subjects per day, rotating starting index each day
+            blocks_for_today = [subjects[(day_offset + i) % num_subjects] for i in range(min(num_subjects, 5))]
+            
+            for idx, subj in enumerate(blocks_for_today):
                 block = StudyBlock(
                     plan_id=plan.id,
                     subject_id=subj.id,
                     date=curr_date,
                     start_time=time(9 + idx * 2, 0),
                     end_time=time(10 + idx * 2, 30),
-                    topic=f"{subj.name} - Module {idx + 1} Deep Dive",
+                    topic=f"{subj.name} - Module {(day_offset + idx) % 5 + 1} Deep Dive",
                     priority="high" if idx == 0 else "medium"
                 )
                 db.add(block)
             curr_date += timedelta(days=1)
+            day_offset += 1
         await db.commit()
 
     # Re-query plan with blocks eager loaded
@@ -90,7 +97,21 @@ async def get_today_blocks(
         .order_by(StudyBlock.start_time.asc())
     )
     result = await db.execute(query)
-    return result.scalars().all()
+    blocks = result.scalars().all()
+
+    # If no blocks exist for today's exact date in database, pull the latest active plan blocks
+    if not blocks:
+        fallback_query = (
+            select(StudyBlock)
+            .join(StudyPlan)
+            .where(StudyPlan.user_id == current_user.id)
+            .order_by(StudyBlock.date.desc(), StudyBlock.start_time.asc())
+            .limit(10)
+        )
+        fb_res = await db.execute(fallback_query)
+        blocks = fb_res.scalars().all()
+
+    return blocks
 
 @router.patch("/blocks/{block_id}/complete", response_model=StudyBlockResponse)
 async def toggle_block_complete(

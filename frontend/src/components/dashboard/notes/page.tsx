@@ -178,69 +178,101 @@ export default function NotesPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Download PDF Handler in exact rendered view
+  // Instant Mobile & PC PDF Download Handler via hidden iframe (No Popup Blocks)
   const handleDownloadPDF = () => {
     if (!activeNote) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
 
     const contentElement = document.getElementById('rendered-markdown-content');
     const renderedHtml = contentElement ? contentElement.innerHTML : '';
 
-    printWindow.document.write(`
+    // Create a hidden iframe for seamless printing / PDF saving on mobile & PC
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>${activeNote.title} - ScholarOS Notes</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
             body {
-              font-family: 'Inter', sans-serif;
-              background-color: #0d0c15;
-              color: #e2e8f0;
-              padding: 40px;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+              background-color: #ffffff;
+              color: #0f172a;
+              padding: 24px;
               margin: 0;
+              line-height: 1.6;
             }
-            h1 { font-size: 24px; color: #ffffff; border-bottom: 2px solid #6366f1; padding-bottom: 8px; margin-top: 24px; }
-            h2 { font-size: 18px; color: #a5b4fc; margin-top: 20px; }
-            h3 { font-size: 15px; color: #d8b4fe; margin-top: 16px; }
-            h4 { font-size: 13px; color: #c7d2fe; margin-top: 12px; text-transform: uppercase; }
-            p, li { font-size: 13px; line-height: 1.6; color: #cbd5e1; }
-            code { font-family: 'JetBrains Mono', monospace; background: #1e1b4b; color: #6ee7b7; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-            blockquote { border-left: 4px solid #6366f1; background: rgba(99, 102, 241, 0.1); padding: 8px 16px; margin: 12px 0; color: #c7d2fe; }
-            .math-box { border: 1px solid rgba(168, 85, 247, 0.4); background: rgba(88, 28, 135, 0.2); padding: 12px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; color: #e9d5ff; margin: 12px 0; }
+            .pdf-header {
+              border-bottom: 2px solid #4338ca;
+              padding-bottom: 12px;
+              margin-bottom: 20px;
+            }
+            .pdf-badge {
+              display: inline-block;
+              background-color: #eeeffe;
+              color: #4338ca;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              padding: 2px 8px;
+              border-radius: 4px;
+              margin-bottom: 6px;
+            }
+            h1 { font-size: 22px; color: #1e1b4b; margin: 4px 0 8px 0; font-weight: 800; }
+            .meta { font-size: 11px; color: #64748b; font-family: monospace; }
+            h2 { font-size: 17px; color: #3730a3; margin-top: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+            h3 { font-size: 14px; color: #581c87; margin-top: 14px; }
+            h4 { font-size: 12px; color: #475569; margin-top: 10px; text-transform: uppercase; }
+            p, li { font-size: 12px; color: #334155; }
+            code { font-family: 'JetBrains Mono', monospace; background: #f1f5f9; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 11px; border: 1px solid #cbd5e1; }
+            blockquote { border-left: 4px solid #6366f1; background: #f8fafc; padding: 8px 14px; margin: 10px 0; color: #1e40af; border-radius: 0 8px 8px 0; }
             @media print {
-              body { background: #ffffff !important; color: #0f172a !important; padding: 20px; }
-              h1 { color: #1e1b4b !important; border-bottom-color: #4338ca !important; }
-              h2 { color: #3730a3 !important; }
-              h3 { color: #581c87 !important; }
-              p, li { color: #334155 !important; }
-              code { background: #f1f5f9 !important; color: #065f46 !important; border: 1px solid #cbd5e1 !important; }
-              blockquote { background: #eff6ff !important; color: #1e40af !important; border-left-color: #2563eb !important; }
-              .math-box { background: #faf5ff !important; color: #6b21a8 !important; border-color: #c084fc !important; }
+              body { padding: 12px; }
+              @page { size: auto; margin: 15mm; }
             }
           </style>
         </head>
         <body>
-          <div style="margin-bottom: 24px; border-bottom: 1px solid #334155; padding-bottom: 12px;">
-            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #a5b4fc; font-weight: bold;">ScholarOS AI Study Vault Note</span>
-            <h1 style="margin: 4px 0 8px 0;">${activeNote.title}</h1>
-            <div style="font-size: 12px; color: #94a3b8;">Source: ${activeNote.source} • Created: ${new Date(activeNote.created_at).toLocaleDateString()} • Word count: ${activeNote.word_count}</div>
+          <div class="pdf-header">
+            <span class="pdf-badge">ScholarOS AI Study Note</span>
+            <h1>${activeNote.title}</h1>
+            <div class="meta">Source: ${activeNote.source} • Created: ${new Date(activeNote.created_at).toLocaleDateString()} • Words: ${activeNote.word_count}</div>
           </div>
           <div>${renderedHtml}</div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 300);
-            };
-          </script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    doc.close();
+
+    // Trigger instant print / save PDF
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Print error:', err);
+      } finally {
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 2000);
+      }
+    }, 300);
   };
 
   // Filter notes by search
@@ -256,26 +288,26 @@ export default function NotesPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto pb-20 md:pb-6">
       {/* Header Banner */}
-      <div className="p-8 rounded-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-black border border-indigo-500/30 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-black border border-indigo-500/30 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold">
             <Sparkles className="w-4 h-4 text-indigo-400" /> Compiled Markdown Vault
           </div>
-          <h1 className="text-3xl font-black text-white">Notes & Knowledge Memory</h1>
-          <p className="text-xs text-gray-300 max-w-xl leading-relaxed">
+          <h1 className="text-2xl sm:text-3xl font-black text-white">Notes & Knowledge Memory</h1>
+          <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
             Create, view compiled markdown scripts, or generate full in-depth academic study notes on any topic powered by Google Gemini.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <button
             onClick={() => {
               setIsCreatingAI(true);
               setIsCreatingManual(false);
             }}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 transition hover:scale-105 transform-gpu"
+            className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition hover:scale-105 transform-gpu"
           >
             <Sparkles className="w-4 h-4" /> Generate AI Note by Topic
           </button>
@@ -285,7 +317,7 @@ export default function NotesPage() {
               setIsCreatingManual(!isCreatingManual);
               setIsCreatingAI(false);
             }}
-            className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/15 flex items-center gap-2 transition"
+            className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/15 flex items-center justify-center gap-2 transition"
           >
             <Plus className="w-4 h-4" /> Manual Note
           </button>
@@ -306,12 +338,12 @@ export default function NotesPage() {
 
       {/* AI Note Generator Form Modal */}
       {isCreatingAI && (
-        <form onSubmit={handleGenerateAINote} className="p-6 rounded-2xl bg-gradient-to-br from-[#12101e] to-black border border-purple-500/40 space-y-4 shadow-2xl animate-in fade-in duration-300">
+        <form onSubmit={handleGenerateAINote} className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#12101e] to-black border border-purple-500/40 space-y-4 shadow-2xl animate-in fade-in duration-300">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2 text-purple-300 font-bold text-sm">
-              <Sparkles className="w-4 h-4 text-purple-400" /> AI Note Generator by Topic
+            <div className="flex items-center gap-2 text-purple-300 font-bold text-xs sm:text-sm">
+              <Sparkles className="w-4 h-4 text-purple-400 shrink-0" /> AI Note Generator by Topic
             </div>
-            <button type="button" onClick={() => setIsCreatingAI(false)} className="text-gray-400 hover:text-white">
+            <button type="button" onClick={() => setIsCreatingAI(false)} className="text-gray-400 hover:text-white p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -339,7 +371,7 @@ export default function NotesPage() {
             {realSubjects.length > 0 && (
               <div>
                 <span className="text-[11px] text-gray-400 font-medium block mb-1.5">Your Registered Subjects:</span>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
                   {realSubjects.map((s, idx) => (
                     <button
                       key={idx}
@@ -362,13 +394,13 @@ export default function NotesPage() {
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
             <div className="flex items-center gap-2 text-xs text-gray-400">
-              <Globe className="w-4 h-4 text-indigo-400" /> Language:
+              <Globe className="w-4 h-4 text-indigo-400 shrink-0" /> Language:
               <select
                 value={aiLang}
                 onChange={(e) => setAiLang(e.target.value)}
-                className="bg-black/60 border border-white/15 rounded-lg px-2 py-1 text-xs text-white focus:outline-none"
+                className="bg-black/60 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
               >
                 <option value="en">English</option>
                 <option value="ta">Tamil</option>
@@ -376,7 +408,7 @@ export default function NotesPage() {
               </select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsCreatingAI(false)}
@@ -387,11 +419,11 @@ export default function NotesPage() {
               <button
                 type="submit"
                 disabled={aiGenerating || !aiTopic.trim()}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {aiGenerating ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" /> Authoring AI Markdown Note...
+                    <Loader2 className="w-4 h-4 animate-spin text-white" /> Authoring AI Note...
                   </>
                 ) : (
                   <>
@@ -406,7 +438,7 @@ export default function NotesPage() {
 
       {/* Manual Note Creation Form */}
       {isCreatingManual && (
-        <form onSubmit={handleCreateManual} className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-2xl p-6 space-y-4 shadow-2xl">
+        <form onSubmit={handleCreateManual} className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <h3 className="font-bold text-sm text-white">Write Manual Markdown Study Note</h3>
             <button type="button" onClick={() => setIsCreatingManual(false)} className="text-gray-400 hover:text-white">
@@ -497,22 +529,22 @@ export default function NotesPage() {
           ))}
         </div>
       ) : (
-        <div className="p-12 text-center rounded-2xl bg-[var(--surface-1)] border border-dashed border-[var(--border-default)] space-y-4 max-w-lg mx-auto mt-8">
+        <div className="p-8 sm:p-12 text-center rounded-2xl bg-[var(--surface-1)] border border-dashed border-[var(--border-default)] space-y-4 max-w-lg mx-auto mt-8">
           <BookOpen className="w-12 h-12 text-indigo-400 mx-auto" />
           <h3 className="font-semibold text-lg text-white">Your Notes Vault is Empty</h3>
           <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             Generate AI study notes by topic or write manual markdown scripts to store in your database memory.
           </p>
-          <div className="flex justify-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
             <button
               onClick={() => setIsCreatingAI(true)}
-              className="text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl transition flex items-center gap-1.5"
+              className="text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
             >
               <Sparkles className="w-4 h-4" /> Generate AI Note
             </button>
             <button
               onClick={() => setIsCreatingManual(true)}
-              className="text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/15 px-4 py-2.5 rounded-xl transition"
+              className="text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/15 px-4 py-2.5 rounded-xl transition flex items-center justify-center"
             >
               Write Manual Note
             </button>
@@ -522,16 +554,16 @@ export default function NotesPage() {
 
       {/* Compiled Markdown Reader & Editor Modal */}
       {activeNote && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
           <div className={`w-full transition-all duration-300 bg-[#0d0c15] border border-indigo-500/40 shadow-2xl flex flex-col justify-between overflow-hidden animate-in fade-in zoom-in-95 ${
             isFullscreen 
-              ? 'w-screen h-screen rounded-none p-6 md:p-10 max-w-none max-h-none' 
-              : 'max-w-4xl max-h-[90vh] rounded-3xl p-6 md:p-8 space-y-6'
+              ? 'w-screen h-screen rounded-none p-4 sm:p-8 max-w-none max-h-none' 
+              : 'max-w-4xl max-h-[92vh] sm:max-h-[90vh] rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-6'
           }`}>
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
+            {/* Modal Responsive Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
                     activeNote.source === 'ai-generated'
                       ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
@@ -539,18 +571,19 @@ export default function NotesPage() {
                   }`}>
                     {activeNote.source}
                   </span>
-                  <span className="text-xs text-gray-400 font-mono">
+                  <span className="text-[11px] text-gray-400 font-mono">
                     Created {new Date(activeNote.created_at).toLocaleDateString()} • {activeNote.word_count} words
                   </span>
                 </div>
-                <h2 className="text-xl md:text-2xl font-black text-white">{activeNote.title}</h2>
+                <h2 className="text-lg sm:text-2xl font-black text-white truncate" title={activeNote.title}>{activeNote.title}</h2>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Action Buttons: Wrap on Mobile without cutting off */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
                 <button
                   onClick={handleCopyContent}
                   title="Copy Raw Markdown"
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 flex items-center gap-1.5 transition"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] sm:text-xs text-gray-300 flex items-center gap-1 transition"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
                   {copied ? 'Copied!' : 'Copy'}
@@ -558,28 +591,28 @@ export default function NotesPage() {
 
                 <button
                   onClick={handleDownloadPDF}
-                  title="Download as PDF in same rendered view"
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                  title="Download as PDF instantly"
+                  className="px-2.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white text-[11px] sm:text-xs font-semibold flex items-center gap-1 transition"
                 >
                   <FileDown className="w-3.5 h-3.5 text-indigo-400" /> Download PDF
                 </button>
 
                 <button
                   onClick={() => setIsEditingActive(!isEditingActive)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 transition font-bold ${
+                  className={`px-2.5 py-1.5 rounded-xl border text-[11px] sm:text-xs flex items-center gap-1 transition font-bold ${
                     isEditingActive
                       ? 'bg-indigo-600 text-white border-indigo-500'
                       : 'bg-white/5 border-white/10 text-gray-300 hover:text-white'
                   }`}
                 >
                   {isEditingActive ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
-                  {isEditingActive ? 'Compiled View' : 'Edit Note'}
+                  {isEditingActive ? 'View' : 'Edit'}
                 </button>
 
                 <button
                   onClick={() => setIsFullscreen(!isFullscreen)}
                   title={isFullscreen ? 'Exit Full Screen' : 'View in Full Screen'}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition"
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition"
                 >
                   {isFullscreen ? <Minimize2 className="w-4 h-4 text-purple-400" /> : <Maximize2 className="w-4 h-4 text-indigo-400" />}
                 </button>
@@ -587,14 +620,14 @@ export default function NotesPage() {
                 <button
                   onClick={() => deleteMutation.mutate(activeNote.id)}
                   title="Delete Note"
-                  className="p-2 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
+                  className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
 
                 <button
                   onClick={() => setActiveNote(null)}
-                  className="p-2 text-gray-400 hover:text-white rounded-xl transition"
+                  className="p-1.5 text-gray-400 hover:text-white rounded-xl transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -604,8 +637,8 @@ export default function NotesPage() {
             {/* Modal Body: Compiled Markdown vs Editor */}
             <div 
               id="rendered-markdown-content" 
-              className={`flex-1 overflow-y-auto pr-2 space-y-4 ${
-                isFullscreen ? 'h-full max-h-none' : 'max-h-[60vh]'
+              className={`flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-4 ${
+                isFullscreen ? 'h-full max-h-none' : 'max-h-[65vh] sm:max-h-[60vh]'
               }`}
             >
               {isEditingActive ? (
@@ -614,17 +647,17 @@ export default function NotesPage() {
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2 text-sm text-white font-bold focus:outline-none"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2 text-xs sm:text-sm text-white font-bold focus:outline-none"
                   />
                   <textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    rows={14}
+                    rows={12}
                     className="w-full bg-black/60 border border-white/15 rounded-xl p-4 text-xs font-mono text-gray-200 focus:outline-none"
                   />
                 </div>
               ) : (
-                <div className="p-5 rounded-2xl bg-black/50 border border-white/10 min-h-[300px]">
+                <div className="p-4 sm:p-6 rounded-2xl bg-black/50 border border-white/10 min-h-[250px]">
                   <MarkdownRenderer content={activeNote.content} />
                 </div>
               )}
