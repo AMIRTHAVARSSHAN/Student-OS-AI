@@ -24,19 +24,27 @@ if not db_url:
     db_url = "sqlite+aiosqlite:///./scholar_os_dev.db"
 
 connect_args = {}
+engine_kwargs = {
+    "echo": False,
+    "future": True,
+}
+
 if "postgresql+asyncpg" in db_url:
-    # Supabase REQUIRES SSL encryption! Create SSL context for cloud PostgreSQL
+    # Supabase Cloud PostgreSQL SSL Context
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE
-    connect_args = {"ssl": ssl_ctx}
+    connect_args = {
+        "ssl": ssl_ctx,
+        "command_timeout": 15,
+        "server_settings": {"jit": "off"}
+    }
+    engine_kwargs["connect_args"] = connect_args
+    # Enable connection health pinging & recycling to prevent stale pooler disconnects
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 300
 
-engine = create_async_engine(
-    db_url,
-    echo=False,
-    future=True,
-    connect_args=connect_args if "postgresql+asyncpg" in db_url else {}
-)
+engine = create_async_engine(db_url, **engine_kwargs)
 
 async_session_factory = async_sessionmaker(
     bind=engine,
