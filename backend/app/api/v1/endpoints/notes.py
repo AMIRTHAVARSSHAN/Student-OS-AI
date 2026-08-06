@@ -7,11 +7,12 @@ import logging
 from google import genai
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.models.note import Note
+from app.models.note import Note, NoteBlock, NoteSource
 from app.models.subject import Subject
 from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse, AINoteGenerateRequest
 from app.core.database import get_db
 from app.core.config import settings
+from app.services.ai_generator import generate_structured_note
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -55,50 +56,15 @@ async def generate_ai_note(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Generates a full structured Markdown academic study note using Google Gemini and saves it directly into the user's database.
+    Generates a structured, block-based academic study note using Google Gemini and saves it directly into the user's database.
     """
-    api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on server.")
-
-    client = genai.Client(api_key=api_key)
     
-    prompt = f"""
-    Generate comprehensive, high-quality, structured academic study notes in Markdown format for the topic: "{req.topic}".
-    Language preference: {req.language or 'en'}.
-    Subject Context: {req.subject_name or 'General Academic'}.
-
-    Format the notes strictly using Github Flavored Markdown:
-    - Use clear headings (`#`, `##`, `###`)
-    - Include an Overview & Definition
-    - Include Key Concepts, Formulas, or Code Blocks (using triple backticks) where applicable
-    - Include Real-world Applications / Use Cases
-    - Include a "Exam Revision Checklist" bullet points section at the end.
-    
-    Do NOT wrap the output in markdown code blocks like ```markdown ... ```. Output raw markdown text directly starting with the title heading `# {req.topic}`.
-    """
-
-    generated_text = ""
-    last_err = None
-
-    for model in CANDIDATE_MODELS:
-        try:
-            res = client.models.generate_content(
-                model=model,
-                contents=prompt
-            )
-            if res.text:
-                generated_text = res.text.strip()
-                break
-        except Exception as e:
-            logger.warning(f"Model {model} failed for AI note generation: {e}")
-            last_err = e
-
-    if not generated_text:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"AI note generation failed across models: {last_err}"
-        )
+    note_structure = generate_structured_note(
+        topic=req.topic,
+        subject_name=req.subject_name or "",
+        language=req.language or "en",
+        source_text=req.source_text or ""
+    )
 
     # Resolve optional subject_id if subject_name matches user's subjects
     subject_id = None
@@ -112,25 +78,58 @@ async def generate_ai_note(
         if subj_obj:
             subject_id = subj_obj.id
 
-    word_count = len(generated_text.split())
-    title = f"{req.topic}"
+    word_count = len(note_structure.title.split()) # Approximate
 
     note = Note(
         user_id=current_user.id,
         subject_id=subject_id,
-        title=title,
-        content=generated_text,
-        plain_text=generated_text,
+        title=note_structure.title,
+        content="", # Deprecated, keeping empty
+        plain_text=note_structure.title,
         source="ai-generated",
         tags=[req.topic.lower(), "ai-generated"],
         topic=req.topic,
-        word_count=word_count
+        word_count=word_count,
+        cover_image=note_structure.cover_image_prompt,
+        icon=note_structure.icon,
+        estimated_reading_time=note_structure.estimated_reading_time,
+        difficulty_level=note_structure.difficulty_level
     )
 
     db.add(note)
+    await db.flush() # To get note.id
+
+    # Create Note Source
+    source = NoteSource(
+        note_id=note.id,
+        source_type=req.source_type,
+        url=req.source_url,
+        metadata_json={"source_text": bool(req.source_text)}
+    )
+    db.add(source)
+
+    # Create Note Blocks
+    for i, block_content in enumerate(note_structure.blocks):
+        block = NoteBlock(
+            note_id=note.id,
+            block_type=block_content.block_type,
+            content=block_content.content,
+            order=i
+        )
+        db.add(block)
+
     await db.commit()
     await db.refresh(note)
-    return note
+    
+    # Reload with relationships
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
+        .where(Note.id == note.id)
+    )
+    note_with_rels = result.scalars().first()
+    return note_with_rels
 
 @router.get("", response_model=List[NoteResponse])
 async def list_notes(
@@ -152,8 +151,10 @@ async def get_note(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    from sqlalchemy.orm import selectinload
     result = await db.execute(
         select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
         .where(Note.id == str(note_id))
         .where(Note.user_id == current_user.id)
     )

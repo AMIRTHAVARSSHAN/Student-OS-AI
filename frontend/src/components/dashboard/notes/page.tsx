@@ -23,7 +23,10 @@ import {
   Minimize2,
   FileDown
 } from 'lucide-react';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
+import dynamic from 'next/dynamic';
+import AIChatSidebar from './AIChatSidebar';
+
+const BlockEditor = dynamic(() => import('./BlockEditor'), { ssr: false });
 
 interface NoteItem {
   id: string;
@@ -40,6 +43,7 @@ interface NoteItem {
   word_count: number;
   created_at: string;
   updated_at: string;
+  blocks?: any[];
 }
 
 export default function NotesPage() {
@@ -63,8 +67,9 @@ export default function NotesPage() {
   const [activeNote, setActiveNote] = useState<NoteItem | null>(null);
   const [isEditingActive, setIsEditingActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState('');
+  const [editBlocks, setEditBlocks] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
 
   // Search filter
@@ -166,9 +171,24 @@ export default function NotesPage() {
   const handleOpenNote = (note: NoteItem) => {
     setActiveNote(note);
     setEditTitle(note.title);
-    setEditContent(note.content);
+    
+    // Convert backend blocks to BlockNote format if they exist
+    if (note.blocks && note.blocks.length > 0) {
+      // Very basic conversion: if it's from AI backend, we map it to BlockNote paragraphs
+      const parsedBlocks = note.blocks.map((b) => ({
+        type: "paragraph",
+        content: JSON.stringify(b.content)
+      }));
+      setEditBlocks(parsedBlocks);
+    } else {
+      setEditBlocks([
+        { type: "paragraph", content: note.content || "Empty Note" }
+      ]);
+    }
+    
     setIsEditingActive(false);
     setIsFullscreen(false);
+    setIsChatOpen(false);
   };
 
   const handleCopyContent = () => {
@@ -581,6 +601,18 @@ export default function NotesPage() {
               {/* Action Buttons: Wrap on Mobile without cutting off */}
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
                 <button
+                  onClick={() => setIsChatOpen(!isChatOpen)}
+                  className={`px-3 py-1.5 rounded-xl border text-[11px] sm:text-xs flex items-center gap-1 transition font-bold ${
+                    isChatOpen
+                      ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/20'
+                      : 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20 text-indigo-300 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI Chat
+                </button>
+
+                <button
                   onClick={handleCopyContent}
                   title="Copy Raw Markdown"
                   className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] sm:text-xs text-gray-300 flex items-center gap-1 transition"
@@ -642,23 +674,26 @@ export default function NotesPage() {
               }`}
             >
               {isEditingActive ? (
-                <div className="space-y-4">
+                <div className="space-y-4 h-full flex flex-col">
                   <input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2 text-xs sm:text-sm text-white font-bold focus:outline-none"
                   />
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    rows={12}
-                    className="w-full bg-black/60 border border-white/15 rounded-xl p-4 text-xs font-mono text-gray-200 focus:outline-none"
-                  />
+                  <div className="flex-1 bg-white rounded-xl overflow-hidden min-h-[400px]">
+                    <BlockEditor 
+                      blocks={editBlocks} 
+                      onChange={(b) => setEditBlocks(b)} 
+                    />
+                  </div>
                 </div>
               ) : (
-                <div className="p-4 sm:p-6 rounded-2xl bg-black/50 border border-white/10 min-h-[250px]">
-                  <MarkdownRenderer content={activeNote.content} />
+                <div className="p-4 sm:p-6 rounded-2xl bg-white text-black border border-white/10 min-h-[400px]">
+                  <BlockEditor 
+                    blocks={editBlocks} 
+                    readOnly={true} 
+                  />
                 </div>
               )}
             </div>
@@ -678,7 +713,10 @@ export default function NotesPage() {
                   onClick={() =>
                     updateMutation.mutate({
                       id: activeNote.id,
-                      payload: { title: editTitle, content: editContent },
+                      payload: { 
+                        title: editTitle, 
+                        content: JSON.stringify(editBlocks)
+                      },
                     })
                   }
                   className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30"
@@ -688,6 +726,15 @@ export default function NotesPage() {
               </div>
             )}
           </div>
+
+          {/* AI Chat Sidebar */}
+          {activeNote && (
+            <AIChatSidebar 
+              noteId={activeNote.id} 
+              isOpen={isChatOpen} 
+              onClose={() => setIsChatOpen(false)} 
+            />
+          )}
         </div>
       )}
     </div>

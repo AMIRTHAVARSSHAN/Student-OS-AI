@@ -11,7 +11,8 @@ from app.api.v1.endpoints import (
     analytics,
     pdf,
     ocr,
-    admin
+    admin,
+    note_chat
 )
 
 api_router = APIRouter()
@@ -22,6 +23,7 @@ api_router.include_router(onboarding.router, prefix="/onboarding", tags=["onboar
 api_router.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
 api_router.include_router(study_plans.router, prefix="/study-plans", tags=["study-plans"])
 api_router.include_router(notes.router, prefix="/notes", tags=["notes"])
+api_router.include_router(note_chat.router, prefix="/notes", tags=["note-chat"])
 api_router.include_router(flashcards.router, prefix="/flashcards", tags=["flashcards"])
 api_router.include_router(ai_chat.router, prefix="/ai", tags=["ai"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
