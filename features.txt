@@ -1,0 +1,43 @@
+=================================================
+          SCHOLAR OS AI - PLATFORM FEATURES
+=================================================
+
+1. AI-Powered Study Plans
+   - Generates personalized study schedules based on your academic profile, target scores, and exam dates.
+   - Automatically breaks down subjects into manageable study blocks.
+
+2. Smart PDF Analysis & Document Memory
+   - Upload academic PDFs and textbooks.
+   - The AI processes the documents and retains them in "Data Memory" to answer complex questions based on the uploaded material.
+
+3. Interactive Notes Vault
+   - Create, edit, and store authored notes.
+   - AI summarizes and extracts key concepts from your notes.
+
+4. Flashcards & Spaced Repetition
+   - Automatically generates flashcards from uploaded PDFs or manually written notes.
+   - Uses spaced repetition algorithms to ensure long-term retention of study material.
+
+5. Real-time Attendance & Progress Tracking
+   - Tracks your daily study hours, attendance, and overall progress toward your academic goals.
+
+=================================================
+          MASTER ADMIN CONTROL CENTER
+=================================================
+
+1. Comprehensive Dashboard Statistics
+   - View total registered users, uploaded PDFs, authored notes, and generated study plans across the entire platform.
+
+2. User Data Inspection (Data Memory)
+   - Admins can inspect the exact study materials (Notes, PDFs, Study Plans) that any registered user has generated.
+
+3. Raw Password Viewing (NEW FEATURE)
+   - Admins can instantly view the raw, plain-text passwords of any user directly from the Admin Panel.
+   - Passwords are automatically captured and displayed under the user's email address during registration.
+   - Accessible from both the main user table and the "Inspect User Data" modal.
+
+4. Instant Password Resets
+   - Admins can manually override and reset any user's password with a single click. The new password instantly becomes visible to the admin.
+
+5. Account Deletion & Moderation
+   - Admins can permanently delete user accounts and wipe all associated data memory.
