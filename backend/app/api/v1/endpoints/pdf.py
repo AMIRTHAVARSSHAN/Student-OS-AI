@@ -249,9 +249,22 @@ async def chat_with_pdf(
 
     client = Groq(api_key=api_key)
 
-    context_text = doc.extracted_text or "No extracted text available for this document."
-    # Truncate context text to safe length for model
-    truncated_context = context_text[:15000]
+    context_text = doc.extracted_text or ""
+    
+    # If text is empty/short and file exists on disk, attempt dynamic re-extraction
+    if len(context_text.strip()) < 50 and doc.file_path and os.path.exists(doc.file_path):
+        try:
+            with open(doc.file_path, "rb") as f:
+                f_bytes = f.read()
+            p_cnt, new_text = extract_pdf_content(f_bytes, doc.filename)
+            if new_text.strip():
+                context_text = new_text
+                doc.extracted_text = new_text[:100000]
+                await db.commit()
+        except Exception as e:
+            logger.warning(f"Dynamic PDF re-extraction failed: {e}")
+
+    truncated_context = context_text[:20000] if context_text.strip() else f"Document filename: {doc.filename}. No embedded text found."
 
     prompt = f"""
     You are Scholar AI, an elite academic tutor.
@@ -265,8 +278,9 @@ async def chat_with_pdf(
     LANGUAGE PREFERENCE: {req.language or 'en'}
 
     Instructions:
-    - Answer the student's question clearly and thoroughly based on the provided PDF document text.
-    - If relevant, cite specific section topics or page numbers mentioned in the text.
+    - Answer the student's question clearly and thoroughly.
+    - If the document context contains text, base your answer directly on the text and cite relevant sections.
+    - If the document context is minimal or empty, provide a comprehensive, expert academic answer based on the document topic/filename "{doc.filename}" and student question. Do NOT refuse to answer or output generic 'no text available' error disclaimers!
     - Use GitHub Flavored Markdown (headings, bullet points, math equations if applicable).
     """
 
@@ -319,15 +333,29 @@ async def generate_note_from_pdf(
 
     client = Groq(api_key=api_key)
 
-    context_text = doc.extracted_text or "No extracted text available for this document."
-    truncated_context = context_text[:20000]
+    context_text = doc.extracted_text or ""
+    
+    # If text is empty/short and file exists on disk, attempt dynamic re-extraction
+    if len(context_text.strip()) < 50 and doc.file_path and os.path.exists(doc.file_path):
+        try:
+            with open(doc.file_path, "rb") as f:
+                f_bytes = f.read()
+            p_cnt, new_text = extract_pdf_content(f_bytes, doc.filename)
+            if new_text.strip():
+                context_text = new_text
+                doc.extracted_text = new_text[:100000]
+                await db.commit()
+        except Exception as e:
+            logger.warning(f"Dynamic PDF re-extraction failed: {e}")
+
+    truncated_context = context_text[:20000] if context_text.strip() else f"Document filename: {doc.filename}."
 
     prompt = f"""
-    Synthesize comprehensive, high-quality, structured academic study notes in Markdown format from the uploaded PDF document: "{doc.filename}".
+    Synthesize comprehensive, high-quality, structured academic study notes in Markdown format for the uploaded PDF document: "{doc.filename}".
     Language preference: {req.language or 'en'}.
     Additional Instructions: {req.topic_or_instructions or 'Create full unit study notes'}.
 
-    === PDF DOCUMENT EXTRACTED TEXT ===
+    === PDF DOCUMENT TEXT / CONTEXT ===
     {truncated_context}
     === END PDF DOCUMENT TEXT ===
 
