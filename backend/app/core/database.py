@@ -1,12 +1,12 @@
 import os
 import re
+import ssl
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
 # 1. Prefer SUPABASE_DB_URL if present, otherwise DATABASE_URL
 raw_url = settings.SUPABASE_DB_URL.strip() or settings.DATABASE_URL.strip()
-
 db_url = raw_url
 
 # Normalize Postgres dialect for SQLAlchemy 2.0 asyncpg driver
@@ -20,15 +20,16 @@ if "postgresql+asyncpg" in db_url and "sslmode=" in db_url:
     db_url = re.sub(r'[?&]sslmode=[^&]+', '', db_url)
 
 # Fallback to local SQLite if no valid database URL is specified
-if not db_url or db_url == "sqlite+aiosqlite:///./scholar_os_dev.db":
-    # On cloud servers like Render, warn if using local SQLite
-    is_cloud = os.getenv("RENDER") or os.getenv("PORT") or os.getenv("RENDER_SERVICE_ID")
+if not db_url:
     db_url = "sqlite+aiosqlite:///./scholar_os_dev.db"
 
 connect_args = {}
 if "postgresql+asyncpg" in db_url:
-    # Disable SSL requirement enforcement in asyncpg connection args for cloud poolers if needed
-    connect_args = {"ssl": False}
+    # Supabase REQUIRES SSL encryption! Create SSL context for cloud PostgreSQL
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    connect_args = {"ssl": ssl_ctx}
 
 engine = create_async_engine(
     db_url,
