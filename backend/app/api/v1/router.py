@@ -7,9 +7,7 @@ from app.api.v1.endpoints import (
     study_plans,
     notes,
     flashcards,
-    ai_chat,
     analytics,
-    pdf,
     ocr,
     admin,
     note_chat
@@ -25,8 +23,6 @@ api_router.include_router(study_plans.router, prefix="/study-plans", tags=["stud
 api_router.include_router(notes.router, prefix="/notes", tags=["notes"])
 api_router.include_router(note_chat.router, prefix="/notes", tags=["note-chat"])
 api_router.include_router(flashcards.router, prefix="/flashcards", tags=["flashcards"])
-api_router.include_router(ai_chat.router, prefix="/ai", tags=["ai"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
-api_router.include_router(pdf.router, prefix="/pdf", tags=["pdf"])
 api_router.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

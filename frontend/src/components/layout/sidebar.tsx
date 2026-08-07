@@ -41,7 +41,6 @@ export default function Sidebar() {
     { href: '/attendance', label: 'Attendance', icon: CheckCircle2 },
     { href: '/notes', label: 'Notes & OCR', icon: BookOpen },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { href: '/ai', label: 'Scholar AI', icon: Bot },
   ];
 
   const navItems = isAdmin
