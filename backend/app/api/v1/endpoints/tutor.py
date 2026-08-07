@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Dict
 import json
 import logging
 
@@ -21,6 +21,7 @@ from app.schemas.tutor import (
 )
 from app.services.tutor.context_engine import context_engine
 from app.services.tutor.tutor_pipeline import tutor_pipeline
+from app.services.tutor.tutor_memory import tutor_memory_store
 from app.core.database import get_db
 
 router = APIRouter()
@@ -74,6 +75,42 @@ async def get_tutor_session_detail(
     if not session:
         raise HTTPException(status_code=404, detail="Tutor session not found")
     return session
+
+@router.get("/sessions/{session_id}/history", response_model=List[Dict[str, str]])
+async def get_session_chat_history(
+    session_id: str,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify session belongs to user
+    res = await db.execute(
+        select(TutorSession)
+        .where(TutorSession.id == session_id)
+        .where(TutorSession.user_id == current_user.id)
+    )
+    session = res.scalars().first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Tutor session not found")
+
+    # 1. Try Upstash / Redis / memory store
+    history = await tutor_memory_store.get_session_history(session_id, limit=limit)
+    if history and len(history) > 0:
+        return history
+
+    # 2. Fallback to SQL SessionAssets table
+    assets_res = await db.execute(
+        select(SessionAsset)
+        .where(SessionAsset.session_id == session_id)
+        .where(SessionAsset.asset_type == "chat_message")
+        .order_by(SessionAsset.created_at.asc())
+        .limit(limit)
+    )
+    db_assets = assets_res.scalars().all()
+    if db_assets:
+        return [{"role": a.title, "content": a.content} for a in db_assets if a.content]
+
+    return []
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tutor_session(
@@ -152,7 +189,8 @@ async def tutor_chat_stream(
             messages=messages,
             context=context,
             action=req.action,
-            style_override=req.teaching_style
+            style_override=req.teaching_style,
+            db=db
         ):
             if chunk["type"] == "text":
                 collected += chunk["content"]

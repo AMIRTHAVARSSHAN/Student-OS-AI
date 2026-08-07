@@ -112,6 +112,24 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     },
   });
 
+  // 4. Fetch Session Chat History from Backend Memory Engine
+  const { data: sessionHistory } = useQuery({
+    queryKey: ['tutor_session_history', sessionId],
+    queryFn: async () => {
+      if (!sessionId) return [];
+      const res = await apiClient.get(`/tutor/sessions/${sessionId}/history`);
+      return res.data || [];
+    },
+    enabled: Boolean(sessionId),
+  });
+
+  // Automatically populate chat workspace when history finishes loading
+  useEffect(() => {
+    if (sessionHistory && sessionHistory.length > 0) {
+      setMessages(sessionHistory);
+    }
+  }, [sessionHistory]);
+
   // Create Session Mutation
   const createSessionMutation = useMutation({
     mutationFn: async () => {
@@ -245,6 +263,11 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
             }
           }
         }
+      }
+
+      // Invalidate history query so new messages are fresh in cache
+      if (sessionId) {
+        queryClient.invalidateQueries({ queryKey: ['tutor_session_history', sessionId] });
       }
     } catch (err) {
       console.error('Streaming error:', err);

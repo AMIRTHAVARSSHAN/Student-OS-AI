@@ -4,10 +4,9 @@ from typing import AsyncGenerator, Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.tutor import TutorSession, AcademicMemory
+from app.models.tutor import TutorSession, AcademicMemory, SessionAsset, ConceptNode
 from app.services.ai_service import ai_service
 from app.services.tutor.tutor_memory import tutor_memory_store
-from app.models.tutor import AcademicMemory, TutorSession, SessionAsset, ConceptNode
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +70,8 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
         messages: List[Dict[str, str]],
         context: Dict[str, Any],
         action: str = None,
-        style_override: str = None
+        style_override: str = None,
+        db: Optional[AsyncSession] = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         sys_prompt = self.build_system_prompt(context, action=action, style_override=style_override)
 
@@ -79,16 +79,29 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
         session_id = sess.get("id")
         topic_name = sess.get("chapter") or sess.get("title") or "the current academic topic"
 
-        # Load Upstash Redis History
+        # Load Upstash Redis / DB History
         history_msgs = []
         if session_id:
-            history_msgs = await tutor_memory_store.get_session_history(session_id, limit=8)
+            history_msgs = await tutor_memory_store.get_session_history(session_id, limit=20)
 
         processed_msgs = [m for m in messages if m.get("content")]
 
-        # Save incoming user message to Upstash Redis
+        # Save incoming user message to Upstash Redis & DB
         if session_id and processed_msgs and processed_msgs[-1]["role"] == "user":
-            await tutor_memory_store.append_session_message(session_id, "user", processed_msgs[-1]["content"])
+            user_content = processed_msgs[-1]["content"]
+            await tutor_memory_store.append_session_message(session_id, "user", user_content)
+            if db:
+                try:
+                    asset = SessionAsset(
+                        session_id=session_id,
+                        asset_type="chat_message",
+                        title="user",
+                        content=user_content
+                    )
+                    db.add(asset)
+                    await db.commit()
+                except Exception as e:
+                    logger.warning(f"Error persisting user chat asset to DB: {e}")
 
         # Handle Action Overrides with explicit topic injection
         if action == "explain_better":
@@ -114,9 +127,22 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
                 full_response_text += chunk["content"]
             yield chunk
 
-        # Save completed assistant reply to Upstash Redis
+        # Save completed assistant reply to Upstash Redis & DB
         if session_id and full_response_text.strip():
-            await tutor_memory_store.append_session_message(session_id, "assistant", full_response_text.strip())
+            asst_content = full_response_text.strip()
+            await tutor_memory_store.append_session_message(session_id, "assistant", asst_content)
+            if db:
+                try:
+                    asset = SessionAsset(
+                        session_id=session_id,
+                        asset_type="chat_message",
+                        title="assistant",
+                        content=asst_content
+                    )
+                    db.add(asset)
+                    await db.commit()
+                except Exception as e:
+                    logger.warning(f"Error persisting assistant chat asset to DB: {e}")
 
     async def execute_active_study_step(
         self,
