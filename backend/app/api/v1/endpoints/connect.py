@@ -383,8 +383,6 @@ async def get_academic_progress_feed(
 
 # --- 6. REALTIME WEBSOCKET RELAY ---
 
-@websocket_router := APIRouter()
-
 @router.websocket("/ws/{channel_id}")
 async def websocket_connect_endpoint(websocket: WebSocket, channel_id: str):
     await ws_manager.connect(channel_id, websocket)
