@@ -4,14 +4,14 @@ import Sidebar from '@/components/layout/sidebar';
 import Topbar from '@/components/layout/topbar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, CheckCircle2, BookOpen, Brain, Settings } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, CheckCircle2, BookOpen, Brain, Settings, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const mobileTabs = [
   { href: '/', label: 'Home', icon: LayoutDashboard },
   { href: '/tutor', label: 'Tutor AI', icon: Brain },
+  { href: '/connect', label: 'Connect', icon: Users },
   { href: '/study-plan', label: 'Plan', icon: CalendarDays },
-  { href: '/attendance', label: 'Attendance', icon: CheckCircle2 },
   { href: '/notes', label: 'Notes', icon: BookOpen },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
