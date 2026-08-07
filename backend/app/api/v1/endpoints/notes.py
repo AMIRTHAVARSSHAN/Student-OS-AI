@@ -38,8 +38,14 @@ async def create_note(
     )
     db.add(note)
     await db.commit()
-    await db.refresh(note)
-    return note
+
+    # Reload note with eager-loaded relationships to prevent Async SQLAlchemy lazy loading 500 error
+    result = await db.execute(
+        select(Note)
+        .options(selectinload(Note.blocks), selectinload(Note.sources))
+        .where(Note.id == note.id)
+    )
+    return result.scalars().first()
 
 @router.post("/generate-ai", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 async def generate_ai_note(
@@ -114,10 +120,8 @@ async def generate_ai_note(
         db.add(block)
 
     await db.commit()
-    await db.refresh(note)
     
     # Reload with relationships
-    from sqlalchemy.orm import selectinload
     result = await db.execute(
         select(Note)
         .options(selectinload(Note.blocks), selectinload(Note.sources))

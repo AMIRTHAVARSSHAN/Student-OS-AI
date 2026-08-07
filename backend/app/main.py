@@ -89,14 +89,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration supporting Vercel deployment origins and local development
+# Robust CORS configuration supporting all production and staging origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

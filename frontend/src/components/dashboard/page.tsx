@@ -80,7 +80,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <Link
-          href="/ai"
+          href="/tutor"
           className="inline-flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-sm"
         >
           <Sparkles className="w-4 h-4" /> Ask Scholar AI

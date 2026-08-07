@@ -167,7 +167,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
       await apiClient.post('/notes', {
         title: noteTitle,
         content: textContent,
-        subject: sessionData?.chapter || 'General',
+        topic: sessionData?.chapter || sessionData?.title || 'General',
         tags: ['tutor_ai', 'study_notes']
       });
 
