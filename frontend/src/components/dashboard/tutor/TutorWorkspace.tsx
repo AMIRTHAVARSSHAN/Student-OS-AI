@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import FormattedChatMessage from './FormattedChatMessage';
+import { useAppStore } from '@/stores/app-store';
 import {
   Brain,
   Send,
@@ -20,7 +21,6 @@ import {
   FileText,
   Network,
   PanelLeft,
-  ChevronRight,
   X,
   Compass,
   BookmarkPlus,
@@ -36,8 +36,8 @@ interface TutorWorkspaceProps {
 export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { toggleSidebar } = useAppStore();
   
-  const [showSessionsSidebar, setShowSessionsSidebar] = useState(true);
   const [showRightInspector, setShowRightInspector] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'study' | 'notes' | 'mindmap' | 'graph' | 'voice'>('chat');
   const [inputMessage, setInputMessage] = useState('');
@@ -54,7 +54,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([
     {
       role: 'assistant',
-      content: '👋 Welcome to **ScholarOS Tutor AI**! I am your persistent Academic Brain. Select a study session or ask me anything — I remember your notes, weak topics, and past quizzes to guide your study journey!'
+      content: '👋 Welcome to **ScholarOS Tutor AI**! I am your persistent Academic Brain. Ask me anything about your subjects — I remember your notes, weak topics, and past quizzes to guide your study journey!'
     }
   ]);
 
@@ -73,16 +73,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isStreaming]);
 
-  // 1. Fetch All Sessions for left sidebar navigation
-  const { data: allSessions } = useQuery({
-    queryKey: ['tutor_sessions'],
-    queryFn: async () => {
-      const res = await apiClient.get('/tutor/sessions');
-      return res.data || [];
-    },
-  });
-
-  // 2. Fetch Active Session Details
+  // 1. Fetch Active Session Details
   const { data: sessionData } = useQuery({
     queryKey: ['tutor_session', sessionId],
     queryFn: async () => {
@@ -93,7 +84,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     enabled: Boolean(sessionId),
   });
 
-  // 3. Fetch User Academic Memory
+  // 2. Fetch User Academic Memory
   const { data: memory } = useQuery({
     queryKey: ['tutor_memory'],
     queryFn: async () => {
@@ -102,7 +93,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     },
   });
 
-  // 4. Fetch Concept Graph
+  // 3. Fetch Concept Graph
   const { data: conceptNodes } = useQuery({
     queryKey: ['concept_graph'],
     queryFn: async () => {
@@ -256,98 +247,24 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-black text-white">
-      
-      {/* 1. LEFT SESSIONS SIDEBAR (FULL SCREEN COLLAPSIBLE DRAWER) */}
-      <aside
-        className={`bg-[var(--surface-1)] border-r border-[var(--border-default)] flex flex-col justify-between shrink-0 transition-all duration-300 z-40 ${
-          showSessionsSidebar ? 'w-72' : 'w-0 overflow-hidden'
-        }`}
-      >
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
-              <Brain className="w-4 h-4 text-indigo-400" /> SESSIONS ({allSessions?.length || 0})
-            </div>
-            <button
-              onClick={() => setShowSessionsSidebar(false)}
-              className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
-              title="Close Sidebar"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition"
-          >
-            <Plus className="w-4 h-4" /> + NEW SESSION
-          </button>
-
-          {/* Categorized Sessions List */}
-          <div className="space-y-3 pt-2">
-            <span className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider block">
-              Active Workspaces
-            </span>
-
-            <div className="space-y-1.5">
-              {allSessions && allSessions.length > 0 ? (
-                allSessions.map((sess: any) => {
-                  const isActive = sessionId === sess.id;
-                  return (
-                    <Link
-                      key={sess.id}
-                      href={`/tutor/${sess.id}`}
-                      className={`w-full p-3 rounded-xl flex items-center justify-between text-xs font-semibold transition border ${
-                        isActive
-                          ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-md font-bold'
-                          : 'bg-[var(--surface-2)] text-gray-300 border-transparent hover:border-white/10 hover:text-white'
-                      }`}
-                    >
-                      <div className="truncate pr-2">
-                        <p className="truncate text-xs">{sess.title}</p>
-                        <span className="text-[10px] text-gray-400 font-mono block truncate">
-                          {sess.chapter || 'General'}
-                        </span>
-                      </div>
-                      <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-indigo-400' : 'text-gray-500'}`} />
-                    </Link>
-                  );
-                })
-              ) : (
-                <p className="text-[11px] text-gray-500 py-2">No active sessions.</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Footer Academic Memory Pills */}
-        <div className="p-3 border-t border-[var(--border-default)] bg-[var(--surface-2)] text-[10px] space-y-1">
-          <div className="flex items-center justify-between text-gray-400 font-mono">
-            <span>WEAK: <strong className="text-rose-400">{memory?.weak_topics?.length || 0}</strong></span>
-            <span>MASTERED: <strong className="text-emerald-400">{memory?.strong_topics?.length || 0}</strong></span>
-          </div>
-        </div>
-      </aside>
-
-      {/* 2. MAIN CENTER WORKSPACE (FULL SCREEN PAGE) */}
+    <div className="flex h-full w-full overflow-hidden bg-black text-white">
+      {/* MAIN CENTER WORKSPACE */}
       <main className="flex-1 flex flex-col min-w-0 bg-black overflow-hidden h-full">
-        {/* Compact Clean Header Bar with Centered Topic Title */}
+        {/* Header Bar with Centered Topic Title & Sidebar Toggle */}
         <header className="px-4 py-3 border-b border-[var(--border-default)] bg-[var(--surface-1)] flex items-center justify-between gap-3 shrink-0">
           <button
-            onClick={() => setShowSessionsSidebar(!showSessionsSidebar)}
+            onClick={toggleSidebar}
             className="p-2 rounded-xl bg-[var(--surface-2)] text-indigo-400 hover:text-white border border-white/10 transition shrink-0"
-            title="Toggle Sessions Sidebar"
+            title="Toggle OS Sidebar"
           >
             <PanelLeft className="w-5 h-5" />
           </button>
 
-          {/* Centered Topic Name */}
+          {/* Centered Topic Title */}
           <div className="flex-1 text-center truncate px-2">
-            <h1 className="font-extrabold text-base sm:text-lg text-white truncate inline-flex items-center gap-2">
+            <h1 className="font-extrabold text-base sm:text-lg text-white truncate inline-flex items-center justify-center gap-2">
               <Brain className="w-4 h-4 text-indigo-400" />
-              {sessionData?.title || sessionData?.chapter || 'ScholarOS Tutor AI'}
+              {sessionData?.title || sessionData?.chapter || 'ScholarOS Tutor AI Brain'}
               {sessionData?.difficulty && (
                 <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   {sessionData.difficulty}
@@ -356,13 +273,22 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
             </h1>
           </div>
 
-          <button
-            onClick={() => setShowRightInspector(!showRightInspector)}
-            className="p-2 rounded-xl bg-[var(--surface-2)] text-gray-400 hover:text-white border border-white/10 transition shrink-0"
-            title="Inspect Memory Context"
-          >
-            <Compass className="w-5 h-5 text-purple-400" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition"
+            >
+              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New Session</span>
+            </button>
+
+            <button
+              onClick={() => setShowRightInspector(!showRightInspector)}
+              className="p-2 rounded-xl bg-[var(--surface-2)] text-gray-400 hover:text-white border border-white/10 transition"
+              title="Inspect Memory Context"
+            >
+              <Compass className="w-5 h-5 text-purple-400" />
+            </button>
+          </div>
         </header>
 
         {/* Workspace Tab Strip */}
@@ -624,7 +550,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
         </div>
       </main>
 
-      {/* 3. RIGHT DRAWER / CONTEXT INSPECTOR */}
+      {/* RIGHT DRAWER / CONTEXT INSPECTOR */}
       {showRightInspector && (
         <aside className="w-72 bg-[var(--surface-1)] border-l border-[var(--border-default)] p-4 space-y-4 shrink-0 overflow-y-auto z-40">
           <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2">
@@ -644,6 +570,10 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
             <div className="p-3 rounded-xl bg-[var(--surface-2)] space-y-1">
               <span className="text-[9px] uppercase font-bold text-gray-400">Chapter</span>
               <p className="font-semibold text-white">{sessionData?.chapter || 'General Topic'}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-[var(--surface-2)] space-y-1">
+              <span className="text-[9px] uppercase font-bold text-rose-400">Focus Areas</span>
+              <p className="font-semibold text-rose-300">{memory?.weak_topics?.join(', ') || 'None'}</p>
             </div>
           </div>
         </aside>
