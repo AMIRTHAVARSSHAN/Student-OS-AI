@@ -390,7 +390,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
             <div className="border-t border-[var(--border-default)] pt-4 space-y-3">
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Concept Graph Nodes</h4>
               <div className="space-y-2">
-                {conceptNodes.slice(0, 4).map((node: any) => (
+                {(conceptNodes || []).slice(0, 4).map((node: any) => (
                   <div key={node.id} className="p-2.5 rounded-xl bg-[var(--surface-2)] flex items-center justify-between text-xs">
                     <span className="font-medium text-white">{node.concept_name}</span>
                     <span className="text-[10px] font-mono text-emerald-400 font-bold">{Math.round((node.mastery_level || 0.8) * 100)}%</span>
@@ -535,7 +535,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {conceptNodes.map((node: any) => (
+            {(conceptNodes || []).map((node: any) => (
               <div key={node.id} className="p-5 rounded-2xl bg-[var(--surface-2)] border border-emerald-500/30 space-y-2">
                 <span className="text-[10px] uppercase font-bold text-emerald-400">{node.subject_name}</span>
                 <h4 className="font-bold text-sm text-white">{node.concept_name}</h4>
