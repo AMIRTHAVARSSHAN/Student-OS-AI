@@ -51,21 +51,22 @@ You are Scholar, an AI study companion inside ScholarOS. Your job is to help stu
     async def generate_response_stream(
         self,
         messages: List[Dict[str, Any]],
-        student_context: Dict[str, Any],
+        student_context: Optional[Dict[str, Any]] = None,
         language: str = "en"
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        system_instruction = self.build_system_prompt(student_context, language)
-
         client = self.get_async_client()
         if not client:
             yield {"type": "text", "content": "ScholarOS AI is running in mock mode. Add your GROQ_API_KEY to activate full intelligence."}
             return
 
-        # Prepare OpenAI-compatible messages for Groq
-        formatted_messages = [{"role": "system", "content": system_instruction}]
+        formatted_messages = []
+        if student_context:
+            system_instruction = self.build_system_prompt(student_context, language)
+            formatted_messages.append({"role": "system", "content": system_instruction})
+
         for msg in messages:
-            role = "user" if msg["role"] == "user" else "assistant"
-            formatted_messages.append({"role": role, "content": msg["content"]})
+            role = msg.get("role", "user")
+            formatted_messages.append({"role": role, "content": msg.get("content", "")})
 
         models_to_try = [settings.GROQ_MODEL] + [m for m in CANDIDATE_MODELS if m != settings.GROQ_MODEL]
 

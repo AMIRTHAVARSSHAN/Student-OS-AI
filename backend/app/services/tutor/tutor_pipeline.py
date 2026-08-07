@@ -73,23 +73,28 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
     ) -> AsyncGenerator[Dict[str, Any], None]:
         sys_prompt = self.build_system_prompt(context, action=action, style_override=style_override)
 
-        # Handle Action Overrides
-        if action == "explain_better":
-            messages.append({"role": "user", "content": "Please explain this topic deeper with a crystal-clear real-world analogy and step-by-step breakdown."})
-        elif action == "summarize":
-            messages.append({"role": "user", "content": "Provide a bulleted executive summary of key takeaways and exam formulas for this topic."})
-        elif action == "notes":
-            messages.append({"role": "user", "content": "Generate structured, high-yield academic study notes in Markdown format for this topic."})
-        elif action == "quiz":
-            messages.append({"role": "user", "content": "Generate a 5-question active recall mini-quiz with answer choices and detailed explanations."})
-        elif action == "mindmap":
-            messages.append({"role": "user", "content": "Generate a visual mindmap / flowchart using Mermaid.js `graph TD` format for this concept."})
-        elif action == "translate_tamil":
-            messages.append({"role": "user", "content": "Re-explain this concept fully in Tamil with English technical terms."})
-        elif action == "translate_tanglish":
-            messages.append({"role": "user", "content": "Re-explain this concept in friendly Tanglish."})
+        sess = context.get("current_session") or {}
+        topic_name = sess.get("chapter") or sess.get("title") or "the current academic topic"
 
-        full_msgs = [{"role": "system", "content": sys_prompt}] + messages
+        processed_msgs = [m for m in messages if m.get("content")]
+
+        # Handle Action Overrides with explicit topic injection
+        if action == "explain_better":
+            processed_msgs.append({"role": "user", "content": f"Please explain {topic_name} deeper with a crystal-clear real-world analogy, step-by-step breakdown, and core principles."})
+        elif action == "summarize":
+            processed_msgs.append({"role": "user", "content": f"Provide a high-yield bulleted executive summary and key formulas for {topic_name}."})
+        elif action == "notes":
+            processed_msgs.append({"role": "user", "content": f"Generate comprehensive, high-yield academic study notes in Markdown format for {topic_name}."})
+        elif action == "quiz":
+            processed_msgs.append({"role": "user", "content": f"Generate a 5-question active recall mini-quiz on {topic_name} with answer choices and detailed explanations."})
+        elif action == "mindmap":
+            processed_msgs.append({"role": "user", "content": f"Generate a visual mindmap / flowchart for {topic_name} using Mermaid.js `graph TD` format."})
+        elif action == "translate_tamil":
+            processed_msgs.append({"role": "user", "content": f"Re-explain {topic_name} fully in Tamil with English technical terms."})
+        elif action == "translate_tanglish":
+            processed_msgs.append({"role": "user", "content": f"Re-explain {topic_name} in friendly Tanglish."})
+
+        full_msgs = [{"role": "system", "content": sys_prompt}] + processed_msgs
 
         async for chunk in ai_service.generate_response_stream(messages=full_msgs):
             yield chunk
