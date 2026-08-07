@@ -310,51 +310,52 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     <div className="flex h-full w-full overflow-hidden bg-black text-white relative">
       {/* Small Floating Notification Popup Toast */}
       {toastPopup.show && (
-        <div className={`fixed bottom-16 right-4 sm:bottom-6 sm:right-6 px-4 py-2.5 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 z-50 border backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 ${
+        <div className={`fixed bottom-20 right-3 sm:bottom-6 sm:right-6 px-3.5 py-2 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 z-50 border backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 ${
           toastPopup.type === 'saving'
             ? 'bg-amber-950/90 text-amber-300 border-amber-500/50'
             : toastPopup.type === 'success'
             ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/50'
             : 'bg-rose-950/90 text-rose-300 border-rose-500/50'
         }`}>
-          {toastPopup.type === 'saving' && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
-          {toastPopup.type === 'success' && <Check className="w-4 h-4 text-emerald-400" />}
-          {toastPopup.type === 'error' && <X className="w-4 h-4 text-rose-400" />}
+          {toastPopup.type === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />}
+          {toastPopup.type === 'success' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+          {toastPopup.type === 'error' && <X className="w-3.5 h-3.5 text-rose-400" />}
           <span>{toastPopup.message}</span>
         </div>
       )}
 
       {/* MAIN CENTER WORKSPACE */}
-      <main className="flex-1 flex flex-col min-w-0 bg-black overflow-hidden h-full">
+      <main className="flex-1 flex flex-col min-w-0 bg-black overflow-hidden h-full pb-16 md:pb-0">
         {/* Header Bar with Centered Topic Title & Sidebar Toggle */}
-        <header className="px-4 py-3 border-b border-[var(--border-default)] bg-[var(--surface-1)] flex items-center justify-between gap-3 shrink-0">
+        <header className="px-3 sm:px-4 py-2.5 border-b border-[var(--border-default)] bg-[var(--surface-1)] flex items-center justify-between gap-2 shrink-0">
           <button
             onClick={toggleSidebar}
             className="p-2 rounded-xl bg-[var(--surface-2)] text-indigo-400 hover:text-white border border-white/10 transition shrink-0"
             title="Toggle OS Sidebar"
           >
-            <PanelLeft className="w-5 h-5" />
+            <PanelLeft className="w-4 h-4" />
           </button>
 
           {/* Centered Topic Title */}
-          <div className="flex-1 text-center truncate px-2">
-            <h1 className="font-extrabold text-base sm:text-lg text-white truncate inline-flex items-center justify-center gap-2">
-              <Brain className="w-4 h-4 text-indigo-400" />
-              {sessionData?.title || sessionData?.chapter || 'ScholarOS Tutor AI Brain'}
+          <div className="flex-1 text-center truncate px-1">
+            <h1 className="font-extrabold text-sm sm:text-base text-white truncate inline-flex items-center justify-center gap-1.5">
+              <Brain className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="truncate">{sessionData?.title || sessionData?.chapter || 'ScholarOS Tutor AI'}</span>
               {sessionData?.difficulty && (
-                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="hidden sm:inline text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   {sessionData.difficulty}
                 </span>
               )}
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition"
+              title="New Session"
             >
-              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New Session</span>
+              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New</span>
             </button>
 
             <button
@@ -362,25 +363,25 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
               className="p-2 rounded-xl bg-[var(--surface-2)] text-gray-400 hover:text-white border border-white/10 transition"
               title="Inspect Memory Context"
             >
-              <Compass className="w-5 h-5 text-purple-400" />
+              <Compass className="w-4 h-4 text-purple-400" />
             </button>
           </div>
         </header>
 
-        {/* Workspace Tab Strip */}
-        <div className="px-4 py-2 border-b border-[var(--border-default)] bg-[var(--surface-1)] flex items-center justify-center gap-2 overflow-x-auto shrink-0 text-xs font-bold">
+        {/* Workspace Tab Strip (Scrollable without ugly scrollbar) */}
+        <div className="no-scrollbar px-3 py-1.5 border-b border-[var(--border-default)] bg-[var(--surface-1)] flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto shrink-0 text-xs font-bold">
           {[
-            { id: 'chat', label: '💬 AI Tutor Chat', icon: Brain },
-            { id: 'study', label: '📖 Active Study', icon: Play },
+            { id: 'chat', label: '💬 Chat', icon: Brain },
+            { id: 'study', label: '📖 Study', icon: Play },
             { id: 'notes', label: '📝 Notes', icon: FileText },
             { id: 'mindmap', label: '📊 Mindmaps', icon: Layers },
-            { id: 'graph', label: '🕸️ Knowledge Graph', icon: Network },
+            { id: 'graph', label: '🕸️ Graph', icon: Network },
             { id: 'voice', label: '🎙️ Voice', icon: Volume2 }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition shrink-0 border ${
+              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 transition shrink-0 border ${
                 activeTab === tab.id
                   ? 'bg-indigo-600 text-white border-indigo-500 shadow'
                   : 'bg-[var(--surface-2)] text-gray-400 border-transparent hover:text-white'
@@ -392,25 +393,25 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
         </div>
 
         {/* TAB CONTENT CONTAINER */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
           
           {/* TAB 1: AI TUTOR CHAT */}
           {activeTab === 'chat' && (
-            <div className="flex flex-col h-full space-y-3">
+            <div className="flex flex-col h-full space-y-2">
               {/* Messages Scroll Box */}
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-4">
                 {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {msg.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold shrink-0 border border-indigo-500/40 mt-1">
-                        <Brain className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-xl bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold shrink-0 border border-indigo-500/40 mt-1">
+                        <Brain className="w-3.5 h-3.5" />
                       </div>
                     )}
                     <div
-                      className={`max-w-3xl p-4 rounded-3xl text-xs sm:text-sm leading-relaxed ${
+                      className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                         msg.role === 'user'
-                          ? 'bg-indigo-600 text-white font-medium rounded-tr-none shadow-md'
-                          : 'bg-[var(--surface-1)] text-gray-100 border border-[var(--border-default)] rounded-tl-none space-y-3 shadow-xl'
+                          ? 'max-w-[80%] sm:max-w-xl bg-indigo-600 text-white font-medium rounded-tr-none shadow-md'
+                          : 'max-w-[92%] sm:max-w-3xl bg-[var(--surface-1)] text-gray-100 border border-[var(--border-default)] rounded-tl-none space-y-2.5 shadow-xl'
                       }`}
                     >
                       {msg.role === 'assistant' ? (
@@ -420,9 +421,9 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                       )}
 
                       {msg.role === 'assistant' && msg.content && (
-                        <div className="flex items-center gap-3 pt-2.5 border-t border-white/10 text-xs text-gray-400">
+                        <div className="flex items-center gap-3 pt-2 border-t border-white/10 text-[11px] text-gray-400">
                           <button onClick={() => speakText(msg.content)} className="hover:text-indigo-300 flex items-center gap-1 font-semibold transition">
-                            <Volume2 className="w-3.5 h-3.5" /> Read Aloud
+                            <Volume2 className="w-3 h-3" /> Read
                           </button>
 
                           <button
@@ -432,15 +433,15 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                           >
                             {savingNotesStatus[idx] ? (
                               <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" /> Saving... ⏳
+                                <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Saving...
                               </>
                             ) : savedNotesStatus[idx] ? (
                               <>
-                                <Check className="w-3.5 h-3.5 text-emerald-400" /> Saved to Notes! 📝
+                                <Check className="w-3 h-3 text-emerald-400" /> Saved!
                               </>
                             ) : (
                               <>
-                                <BookmarkPlus className="w-3.5 h-3.5" /> Save as Note 📌
+                                <BookmarkPlus className="w-3 h-3" /> Save Note 📌
                               </>
                             )}
                           </button>
@@ -452,12 +453,12 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Quick Actions Chips */}
-              <div className="py-2 flex flex-wrap gap-2 border-t border-[var(--border-default)] shrink-0 justify-center">
+              {/* Quick Action Chips (Single line horizontal touch scroll) */}
+              <div className="no-scrollbar py-1.5 px-1 flex items-center gap-1.5 overflow-x-auto border-t border-[var(--border-default)] shrink-0">
                 {[
                   { label: '💡 Explain Deeper', action: 'explain_better' },
-                  { label: '📌 Executive Summary', action: 'summarize' },
-                  { label: '📝 Save to Notes', action: 'notes' },
+                  { label: '📌 Summary', action: 'summarize' },
+                  { label: '📝 Save Note', action: 'notes' },
                   { label: '📊 Mindmap', action: 'mindmap' },
                   { label: '❓ Quiz', action: 'quiz' },
                   { label: '🗣️ Tanglish', action: 'translate_tanglish' }
@@ -465,14 +466,14 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                   <button
                     key={idx}
                     onClick={() => handleSendMessage(chip.label, chip.action)}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--surface-2)] hover:bg-indigo-600/30 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition shadow-sm"
+                    className="px-3 py-1.5 rounded-xl bg-[var(--surface-2)] hover:bg-indigo-600/30 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition shrink-0 shadow-sm"
                   >
                     {chip.label}
                   </button>
                 ))}
               </div>
 
-              {/* Input Form */}
+              {/* Input Form Pinned above Mobile Bottom Bar */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -484,15 +485,15 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask Tutor AI anything about this topic..."
-                  className="flex-1 px-4 py-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 shadow-inner"
+                  placeholder="Ask Tutor AI anything..."
+                  className="flex-1 px-3.5 py-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs sm:text-sm text-white focus:outline-none focus:border-indigo-500 shadow-inner"
                 />
                 <button
                   type="submit"
                   disabled={isStreaming || !inputMessage.trim()}
-                  className="p-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition disabled:opacity-50 shrink-0 shadow-lg"
+                  className="p-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition disabled:opacity-50 shrink-0 shadow-lg"
                 >
-                  {isStreaming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </form>
             </div>
@@ -500,11 +501,11 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
           {/* TAB 2: ACTIVE STUDY MODE */}
           {activeTab === 'study' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-default)] pb-4">
                 <div>
                   <span className="text-[10px] font-bold uppercase text-purple-400">Active Socratic Tuition</span>
-                  <h2 className="text-lg font-bold text-white">Interactive Step Session</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-white">Interactive Step Session</h2>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -512,12 +513,12 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                     value={studyTopic}
                     onChange={(e) => setStudyTopic(e.target.value)}
                     placeholder="Topic e.g. Transcription"
-                    className="px-3.5 py-2 rounded-xl bg-[var(--surface-2)] border border-white/10 text-xs text-white"
+                    className="px-3 py-2 rounded-xl bg-[var(--surface-2)] border border-white/10 text-xs text-white flex-1"
                   />
                   <button
                     onClick={() => handleActiveStudyStep('explain')}
                     disabled={loadingStudyStep}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1"
                   >
                     {loadingStudyStep ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Start
                   </button>
@@ -526,29 +527,29 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
               {studyContent ? (
                 <div className="space-y-4">
-                  <div className="p-5 rounded-2xl bg-[var(--surface-2)] border border-indigo-500/30 text-xs sm:text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">
+                  <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-indigo-500/30 text-xs sm:text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">
                     {studyContent}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-indigo-300 uppercase block">Your Answer / Explanation:</label>
+                    <label className="text-xs font-bold text-indigo-300 uppercase block">Your Explanation:</label>
                     <textarea
                       rows={3}
                       value={studentAnswer}
                       onChange={(e) => setStudentAnswer(e.target.value)}
                       placeholder="Type your answer to the Socratic question..."
-                      className="w-full p-3.5 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full p-3 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-default)] text-xs text-white focus:outline-none focus:border-indigo-500"
                     />
                     <button
                       onClick={() => handleActiveStudyStep('evaluate')}
                       disabled={loadingStudyStep || !studentAnswer.trim()}
-                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg"
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg"
                     >
                       {loadingStudyStep ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Submit Answer
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="p-8 text-center rounded-2xl bg-[var(--surface-2)] border border-dashed border-white/10 space-y-2">
+                <div className="p-6 text-center rounded-2xl bg-[var(--surface-2)] border border-dashed border-white/10 space-y-2">
                   <Play className="w-8 h-8 text-indigo-400 mx-auto" />
                   <p className="text-xs text-gray-400">Click Start to begin Socratic step-by-step tuition.</p>
                 </div>
@@ -558,9 +559,9 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
           {/* TAB 3: NOTES */}
           {activeTab === 'notes' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
               <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                   <FileText className="w-4 h-4 text-indigo-400" /> Continuous Evolving Notes
                 </h2>
                 <Link href="/notes" className="text-xs text-indigo-400 font-bold hover:underline">
@@ -576,11 +577,11 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
           {/* TAB 4: MINDMAP */}
           {activeTab === 'mindmap' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 space-y-4 shadow-xl">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-purple-400" /> Concept Mindmaps
               </h2>
-              <div className="p-6 rounded-2xl bg-black/60 border border-purple-500/30 font-mono text-xs text-purple-300">
+              <div className="p-4 sm:p-6 rounded-2xl bg-black/60 border border-purple-500/30 font-mono text-xs text-purple-300 overflow-x-auto">
                 graph TD; A[{sessionData?.title || 'Topic'}] --&gt; B(Core Concepts); B --&gt; C(Exams & Practice);
               </div>
             </div>
@@ -588,13 +589,13 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
           {/* TAB 5: CONCEPT GRAPH */}
           {activeTab === 'graph' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 space-y-4 shadow-xl">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                 <Network className="w-4 h-4 text-emerald-400" /> Knowledge Graph Nodes
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {(conceptNodes || []).map((node: any) => (
-                  <div key={node.id} className="p-4 rounded-2xl bg-[var(--surface-2)] border border-emerald-500/30 space-y-1 text-xs">
+                  <div key={node.id} className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-emerald-500/30 space-y-1 text-xs">
                     <span className="text-[9px] uppercase font-bold text-emerald-400">{node.subject_name}</span>
                     <h4 className="font-bold text-white">{node.concept_name}</h4>
                     <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-2">
@@ -608,18 +609,18 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
           {/* TAB 6: VOICE TUTOR */}
           {activeTab === 'voice' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-8 text-center space-y-4 shadow-xl">
-              <div className="w-16 h-16 rounded-full bg-indigo-600/20 border border-indigo-500 text-indigo-400 flex items-center justify-center mx-auto shadow-xl">
-                <Volume2 className="w-8 h-8 animate-pulse" />
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 text-center space-y-4 shadow-xl">
+              <div className="w-14 h-14 rounded-full bg-indigo-600/20 border border-indigo-500 text-indigo-400 flex items-center justify-center mx-auto shadow-xl">
+                <Volume2 className="w-7 h-7 animate-pulse" />
               </div>
-              <h2 className="text-lg font-black text-white">Voice Tutor AI</h2>
+              <h2 className="text-base sm:text-lg font-black text-white">Voice Tutor AI</h2>
               <p className="text-xs text-gray-400">Supports English, Tamil, and Tanglish speech interaction.</p>
               <button
                 onClick={() => {
                   setIsListening(!isListening);
                   if (!isListening) speakText("Voice Tutor active. Ask your academic question!");
                 }}
-                className={`px-6 py-3 rounded-2xl font-bold text-xs inline-flex items-center gap-2 transition ${
+                className={`px-5 py-2.5 rounded-2xl font-bold text-xs inline-flex items-center gap-2 transition ${
                   isListening ? 'bg-rose-600 text-white animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500 text-white'
                 }`}
               >
@@ -633,7 +634,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
       {/* RIGHT DRAWER / CONTEXT INSPECTOR */}
       {showRightInspector && (
-        <aside className="w-72 bg-[var(--surface-1)] border-l border-[var(--border-default)] p-4 space-y-4 shrink-0 overflow-y-auto z-40">
+        <aside className="w-72 bg-[var(--surface-1)] border-l border-[var(--border-default)] p-4 space-y-4 shrink-0 overflow-y-auto z-40 fixed right-0 top-0 bottom-0 shadow-2xl">
           <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2">
             <h3 className="font-bold text-xs text-white flex items-center gap-1.5">
               <Brain className="w-4 h-4 text-purple-400" /> Memory Context

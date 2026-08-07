@@ -65,14 +65,16 @@ export default function ConnectShell() {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-black border border-indigo-500/30 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold">
-            <Globe className="w-4 h-4 text-indigo-400" /> ScholarConnect Network
+    <div className="space-y-4 sm:space-y-6 max-w-7xl w-full mx-auto pb-24 md:pb-16 overflow-x-hidden">
+      {/* Header Banner (Fluid typography & non-overflowing bounds) */}
+      <div className="p-4 sm:p-6 md:p-8 rounded-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-black border border-indigo-500/30 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 w-full">
+        <div className="space-y-1.5 w-full md:w-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold">
+            <Globe className="w-3.5 h-3.5 text-indigo-400" /> ScholarConnect Network
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">AI Academic Collaboration Engine</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white leading-tight">
+            AI Academic Collaboration Engine
+          </h1>
           <p className="text-xs sm:text-sm text-gray-300 max-w-xl leading-relaxed">
             Collaborate in real-time with verified peers. Share AI notes, flashcard decks, mindmaps, assignments, and study in live voice lounges.
           </p>
@@ -80,14 +82,14 @@ export default function ConnectShell() {
 
         <button
           onClick={() => setShowCreateGroup(true)}
-          className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition hover:scale-105 transform-gpu"
+          className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition"
         >
           <Plus className="w-4 h-4" /> Create Study Group
         </button>
       </div>
 
-      {/* Main Mode Navigation Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[var(--border-default)] text-xs font-bold">
+      {/* Main Mode Navigation Bar (Scrollable without scrollbar) */}
+      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-[var(--border-default)] text-xs font-bold w-full">
         {[
           { id: 'network', label: '👥 Connections', icon: Users },
           { id: 'chat', label: '💬 Encrypted Chat', icon: MessageSquare },
@@ -100,29 +102,29 @@ export default function ConnectShell() {
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id as any)}
-            className={`px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 transition shrink-0 border ${
+            className={`px-3.5 py-2 rounded-2xl font-bold flex items-center gap-1.5 transition shrink-0 border ${
               activeTab === t.id
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
                 : 'bg-[var(--surface-1)] text-gray-400 border-[var(--border-default)] hover:text-white'
             }`}
           >
-            <t.icon className="w-4 h-4" />
+            <t.icon className="w-3.5 h-3.5" />
             {t.label}
           </button>
         ))}
       </div>
 
       {/* TAB CONTENT RENDERER */}
-      <div className="min-h-[500px]">
+      <div className="min-h-[450px] w-full">
         {activeTab === 'network' && <FriendsManager />}
         {activeTab === 'chat' && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px]">
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 space-y-3 overflow-y-auto">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-gray-400 px-2">Study Channels</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[550px] sm:h-[600px] w-full">
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-3 space-y-2 overflow-y-auto max-h-[160px] lg:max-h-full">
+              <h3 className="font-bold text-[11px] uppercase tracking-wider text-gray-400 px-2">Study Channels</h3>
               <div className="space-y-1">
                 <button
                   onClick={() => setSelectedChannel('general_study_lounge')}
-                  className={`w-full p-3 rounded-2xl text-xs font-bold text-left transition border ${
+                  className={`w-full p-2.5 rounded-2xl text-xs font-bold text-left transition border ${
                     selectedChannel === 'general_study_lounge'
                       ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40'
                       : 'bg-white/5 text-gray-300 border-transparent hover:border-white/10'
@@ -135,7 +137,7 @@ export default function ConnectShell() {
                   <button
                     key={g.id}
                     onClick={() => setSelectedChannel(g.id)}
-                    className={`w-full p-3 rounded-2xl text-xs font-bold text-left transition border ${
+                    className={`w-full p-2.5 rounded-2xl text-xs font-bold text-left transition border ${
                       selectedChannel === g.id
                         ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40'
                         : 'bg-white/5 text-gray-300 border-transparent hover:border-white/10'
@@ -147,7 +149,7 @@ export default function ConnectShell() {
               </div>
             </div>
 
-            <div className="lg:col-span-3 h-full">
+            <div className="lg:col-span-3 h-full w-full">
               <ChatCanvas channelId={selectedChannel} />
             </div>
           </div>
