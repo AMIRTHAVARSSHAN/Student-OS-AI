@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     SUPABASE_SECRET_KEY: str = Field(default="sb_secret_FyGWJel-fDDVCWGrGy3jYQ_QnggIZjH")
     SUPABASE_JWKS_URL: str = Field(default="https://iaykhpsrmptokiantgcc.supabase.co/auth/v1/.well-known/jwks.json")
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
+    UPSTASH_REDIS_REST_URL: str = Field(default="")
+    UPSTASH_REDIS_REST_TOKEN: str = Field(default="")
     
     # AI & Model Configuration (Groq Llama 3.3 70B)
     GROQ_API_KEY: str = Field(default="")

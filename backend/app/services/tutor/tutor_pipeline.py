@@ -1,10 +1,12 @@
 import logging
 import json
-from typing import AsyncGenerator, Dict, Any, List
+from typing import AsyncGenerator, Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.models.tutor import TutorSession, AcademicMemory
 from app.services.ai_service import ai_service
+from app.services.tutor.tutor_memory import tutor_memory_store
 from app.models.tutor import AcademicMemory, TutorSession, SessionAsset, ConceptNode
 
 logger = logging.getLogger(__name__)
@@ -74,9 +76,19 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
         sys_prompt = self.build_system_prompt(context, action=action, style_override=style_override)
 
         sess = context.get("current_session") or {}
+        session_id = sess.get("id")
         topic_name = sess.get("chapter") or sess.get("title") or "the current academic topic"
 
+        # Load Upstash Redis History
+        history_msgs = []
+        if session_id:
+            history_msgs = await tutor_memory_store.get_session_history(session_id, limit=8)
+
         processed_msgs = [m for m in messages if m.get("content")]
+
+        # Save incoming user message to Upstash Redis
+        if session_id and processed_msgs and processed_msgs[-1]["role"] == "user":
+            await tutor_memory_store.append_session_message(session_id, "user", processed_msgs[-1]["content"])
 
         # Handle Action Overrides with explicit topic injection
         if action == "explain_better":
@@ -94,10 +106,17 @@ You are powered exclusively by Groq `llama-3.3-70b-versatile`.
         elif action == "translate_tanglish":
             processed_msgs.append({"role": "user", "content": f"Re-explain {topic_name} in friendly Tanglish."})
 
-        full_msgs = [{"role": "system", "content": sys_prompt}] + processed_msgs
+        full_msgs = [{"role": "system", "content": sys_prompt}] + history_msgs + processed_msgs
 
+        full_response_text = ""
         async for chunk in ai_service.generate_response_stream(messages=full_msgs):
+            if chunk.get("type") == "text" and chunk.get("content"):
+                full_response_text += chunk["content"]
             yield chunk
+
+        # Save completed assistant reply to Upstash Redis
+        if session_id and full_response_text.strip():
+            await tutor_memory_store.append_session_message(session_id, "assistant", full_response_text.strip())
 
     async def execute_active_study_step(
         self,
