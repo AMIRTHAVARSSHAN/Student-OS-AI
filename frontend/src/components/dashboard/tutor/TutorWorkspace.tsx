@@ -42,7 +42,17 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<'chat' | 'study' | 'notes' | 'mindmap' | 'graph' | 'voice'>('chat');
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  
+  // Note saving loading & success states per message
+  const [savingNotesStatus, setSavingNotesStatus] = useState<Record<number, boolean>>({});
   const [savedNotesStatus, setSavedNotesStatus] = useState<Record<number, boolean>>({});
+
+  // Small Toast Notification Popup
+  const [toastPopup, setToastPopup] = useState<{ show: boolean; message: string; type: 'saving' | 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
 
   // Create Session Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -125,8 +135,15 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     },
   });
 
-  // Save Response to Backend User Notes
+  // Save Response to Backend User Notes with Small Popup Loading Indicator
   const handleSaveToNotes = async (msgIndex: number, textContent: string) => {
+    setSavingNotesStatus((prev) => ({ ...prev, [msgIndex]: true }));
+    setToastPopup({
+      show: true,
+      message: 'Saving note to Vault memory... ⏳',
+      type: 'saving'
+    });
+
     try {
       const noteTitle = sessionData?.title ? `${sessionData.title} - Tutor AI Note` : 'Tutor AI Study Note';
       await apiClient.post('/notes', {
@@ -136,12 +153,32 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
         tags: ['tutor_ai', 'study_notes']
       });
 
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+
+      setSavingNotesStatus((prev) => ({ ...prev, [msgIndex]: false }));
       setSavedNotesStatus((prev) => ({ ...prev, [msgIndex]: true }));
+
+      setToastPopup({
+        show: true,
+        message: 'Saved to Notes Vault! 📝',
+        type: 'success'
+      });
+
       setTimeout(() => {
         setSavedNotesStatus((prev) => ({ ...prev, [msgIndex]: false }));
+        setToastPopup((prev) => ({ ...prev, show: false }));
       }, 3000);
     } catch (err) {
       console.error('Save to notes error:', err);
+      setSavingNotesStatus((prev) => ({ ...prev, [msgIndex]: false }));
+      setToastPopup({
+        show: true,
+        message: 'Failed to save note. Please try again.',
+        type: 'error'
+      });
+      setTimeout(() => {
+        setToastPopup((prev) => ({ ...prev, show: false }));
+      }, 3000);
     }
   };
 
@@ -247,7 +284,23 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-black text-white">
+    <div className="flex h-full w-full overflow-hidden bg-black text-white relative">
+      {/* Small Floating Notification Popup Toast */}
+      {toastPopup.show && (
+        <div className={`fixed bottom-16 right-4 sm:bottom-6 sm:right-6 px-4 py-2.5 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 z-50 border backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300 ${
+          toastPopup.type === 'saving'
+            ? 'bg-amber-950/90 text-amber-300 border-amber-500/50'
+            : toastPopup.type === 'success'
+            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/50'
+            : 'bg-rose-950/90 text-rose-300 border-rose-500/50'
+        }`}>
+          {toastPopup.type === 'saving' && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
+          {toastPopup.type === 'success' && <Check className="w-4 h-4 text-emerald-400" />}
+          {toastPopup.type === 'error' && <X className="w-4 h-4 text-rose-400" />}
+          <span>{toastPopup.message}</span>
+        </div>
+      )}
+
       {/* MAIN CENTER WORKSPACE */}
       <main className="flex-1 flex flex-col min-w-0 bg-black overflow-hidden h-full">
         {/* Header Bar with Centered Topic Title & Sidebar Toggle */}
@@ -351,9 +404,14 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
 
                           <button
                             onClick={() => handleSaveToNotes(idx, msg.content)}
-                            className="hover:text-emerald-300 flex items-center gap-1 font-semibold transition text-emerald-400/90"
+                            disabled={savingNotesStatus[idx]}
+                            className="hover:text-emerald-300 flex items-center gap-1 font-semibold transition text-emerald-400/90 disabled:opacity-60"
                           >
-                            {savedNotesStatus[idx] ? (
+                            {savingNotesStatus[idx] ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" /> Saving... ⏳
+                              </>
+                            ) : savedNotesStatus[idx] ? (
                               <>
                                 <Check className="w-3.5 h-3.5 text-emerald-400" /> Saved to Notes! 📝
                               </>
