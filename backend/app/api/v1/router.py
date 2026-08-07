@@ -10,7 +10,8 @@ from app.api.v1.endpoints import (
     analytics,
     ocr,
     admin,
-    note_chat
+    note_chat,
+    tutor
 )
 
 api_router = APIRouter()
@@ -26,3 +27,4 @@ api_router.include_router(flashcards.router, prefix="/flashcards", tags=["flashc
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(tutor.router, prefix="/tutor", tags=["tutor"])

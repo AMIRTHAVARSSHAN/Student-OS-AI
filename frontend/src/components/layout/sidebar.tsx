@@ -15,6 +15,7 @@ import {
   BarChart3,
   FileText,
   Bot,
+  Brain,
   Shield,
   X
 } from 'lucide-react';
@@ -37,6 +38,7 @@ export default function Sidebar() {
 
   const baseNavItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/tutor', label: 'Tutor AI Brain', icon: Brain },
     { href: '/study-plan', label: 'Study Plan', icon: CalendarDays },
     { href: '/attendance', label: 'Attendance', icon: CheckCircle2 },
     { href: '/notes', label: 'Notes & OCR', icon: BookOpen },
