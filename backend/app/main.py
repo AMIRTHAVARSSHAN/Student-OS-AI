@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
             if is_postgres:
                 try:
                     await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                    await conn.execute(text("ALTER TABLE study_blocks ADD COLUMN IF NOT EXISTS note_id VARCHAR(36);"))
                 except Exception as e:
                     logger.warning(f"Postgres extension notice: {e}")
             try:

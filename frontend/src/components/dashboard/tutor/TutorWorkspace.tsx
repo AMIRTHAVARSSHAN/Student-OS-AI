@@ -146,12 +146,15 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
     setIsStreaming(true);
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/tutor/chat`, {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || localStorage.getItem('token') : null;
+      const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = envUrl.endsWith('/api/v1') ? envUrl : `${envUrl}/api/v1`;
+
+      const response = await fetch(`${apiUrl}/tutor/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           session_id: sessionId,
