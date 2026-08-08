@@ -137,6 +137,21 @@ async def get_user_academic_memory(
     memory = await context_engine.get_or_create_academic_memory(db, current_user.id)
     return memory
 
+@router.delete("/memory", status_code=status.HTTP_200_OK)
+async def reset_user_academic_memory(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(AcademicMemory).where(AcademicMemory.user_id == current_user.id))
+    memory = res.scalars().first()
+    if memory:
+        memory.weak_topics = []
+        memory.strong_topics = []
+        memory.common_mistakes = []
+        memory.mastery_scores = {}
+        await db.commit()
+    return {"message": "Academic Memory reset successfully."}
+
 @router.get("/concept-graph", response_model=List[ConceptNodeResponse])
 async def get_concept_graph(
     current_user: User = Depends(get_current_user),

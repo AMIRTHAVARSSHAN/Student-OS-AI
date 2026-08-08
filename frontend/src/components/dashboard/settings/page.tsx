@@ -18,7 +18,10 @@ import {
   Loader2, 
   Camera,
   Award,
-  Layers
+  Layers,
+  Brain,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 
 const PRESET_AVATARS = [
@@ -56,6 +59,27 @@ export default function SettingsPage() {
     queryFn: async () => {
       const res = await apiClient.get('/users/me/profile');
       return res.data;
+    },
+  });
+
+  // Fetch Academic Memory
+  const { data: memory } = useQuery({
+    queryKey: ['tutor_memory'],
+    queryFn: async () => {
+      const res = await apiClient.get('/tutor/memory');
+      return res.data;
+    },
+  });
+
+  // Memory Reset Mutation
+  const resetMemoryMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.delete('/tutor/memory');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tutor_memory'] });
+      setSuccessMessage('Academic Memory reset successfully! 🧹');
+      setTimeout(() => setSuccessMessage(''), 3000);
     },
   });
 
@@ -271,18 +295,6 @@ export default function SettingsPage() {
               <Building2 className="w-5 h-5 text-indigo-400" /> College & Academic Program
             </h2>
 
-            {/* AI Web-Searched College Intelligence Badge */}
-            {profile?.institution_details && (
-              <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-indigo-200 text-xs space-y-1">
-                <div className="flex items-center gap-1.5 text-indigo-300 font-bold">
-                  <Globe className="w-4 h-4 text-indigo-400" /> AI Web-Searched College Intelligence
-                </div>
-                <p className="text-[11px] text-indigo-200/80">
-                  Location: {profile.institution_details.location || 'Verified'} • Accreditation: {profile.institution_details.accreditation || 'Standard'} • Grading: {profile.institution_details.grading_system || '10-Point Scale'}
-                </p>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="text-xs font-semibold text-gray-300 block mb-1">College / University Name</label>
@@ -345,15 +357,64 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Section 3: Enrolled Subjects */}
+          {/* Section 3: Academic Memory Inspector */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-default)] pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-purple-400" /> Academic Memory Inspector
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)]">Inspect and manage persistent weak topics, mastered concepts, and learning history.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => resetMemoryMutation.mutate()}
+                disabled={resetMemoryMutation.isPending}
+                className="px-4 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center gap-1.5 shrink-0 transition"
+              >
+                {resetMemoryMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Reset Memory
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-rose-500/20 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-rose-400 block">Weak Topics Identified:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(memory?.weak_topics && memory.weak_topics.length > 0) ? (
+                    memory.weak_topics.map((t: string, i: number) => (
+                      <span key={i} className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-300 font-semibold text-[11px]">
+                        {t}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 italic">No weak topics logged yet.</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[var(--surface-2)] border border-emerald-500/20 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 block">Mastered Concepts:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(memory?.strong_topics && memory.strong_topics.length > 0) ? (
+                    memory.strong_topics.map((t: string, i: number) => (
+                      <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 font-semibold text-[11px]">
+                        {t}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 italic">No mastered topics logged yet.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Enrolled Subjects */}
           <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 border-b border-[var(--border-default)] pb-4">
               <BookOpen className="w-5 h-5 text-indigo-400" /> Enrolled Subjects Memory
             </h2>
-
-            <p className="text-xs text-[var(--text-secondary)]">
-              These subjects power your AI Study Plans, Notes Vault, and Attendance tracker in backend memory.
-            </p>
 
             <div className="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border-default)] items-center">
               {subjects.map((subj, idx) => (

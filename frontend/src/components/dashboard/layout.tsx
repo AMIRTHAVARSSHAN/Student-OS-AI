@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/layout/sidebar';
 import Topbar from '@/components/layout/topbar';
+import CommandPalette from '@/components/CommandPalette';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, CalendarDays, BookOpen, Brain, Settings, Users } from 'lucide-react';
@@ -26,6 +27,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-black text-white selection:bg-indigo-600 selection:text-white">
+      <CommandPalette />
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
         {!isTutorWorkspace && <Topbar />}

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
-import { Lightbulb, AlertCircle, Info, Sparkles, CheckCircle } from 'lucide-react';
+import { Lightbulb, AlertCircle, Info, Sparkles, CheckCircle, HelpCircle, Flame, ShieldAlert, Award } from 'lucide-react';
 
 interface FormattedChatMessageProps {
   content: string;
@@ -88,6 +88,63 @@ export default function FormattedChatMessage({ content }: FormattedChatMessagePr
       const trimmed = line.trim();
       if (!trimmed) {
         elements.push(<div key={`empty-${index}`} className="h-2" />);
+        return;
+      }
+
+      // Educational Cards: CORE IDEA, EXAM FOCUS, MEMORY TRICK, COMMON MISTAKE, TEST YOURSELF
+      if (trimmed.startsWith('CORE IDEA:') || trimmed.startsWith('💡 CORE IDEA:')) {
+        const textVal = trimmed.replace(/^.*CORE IDEA:\s*/i, '');
+        elements.push(
+          <div key={`core-${index}`} className="my-3 p-3.5 rounded-2xl bg-indigo-950/50 border border-indigo-500/40 text-indigo-200 text-xs sm:text-sm flex items-start gap-2.5 shadow-md">
+            <Lightbulb className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-indigo-300 font-bold block mb-0.5">CORE IDEA</strong>
+              <span>{formatInlineMarkdown(textVal)}</span>
+            </div>
+          </div>
+        );
+        return;
+      }
+
+      if (trimmed.startsWith('EXAM FOCUS:') || trimmed.startsWith('🎯 EXAM FOCUS:')) {
+        const textVal = trimmed.replace(/^.*EXAM FOCUS:\s*/i, '');
+        elements.push(
+          <div key={`exam-${index}`} className="my-3 p-3.5 rounded-2xl bg-purple-950/50 border border-purple-500/40 text-purple-200 text-xs sm:text-sm flex items-start gap-2.5 shadow-md">
+            <Award className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-purple-300 font-bold block mb-0.5">EXAM FOCUS</strong>
+              <span>{formatInlineMarkdown(textVal)}</span>
+            </div>
+          </div>
+        );
+        return;
+      }
+
+      if (trimmed.startsWith('COMMON MISTAKE:') || trimmed.startsWith('⚠️ COMMON MISTAKE:')) {
+        const textVal = trimmed.replace(/^.*COMMON MISTAKE:\s*/i, '');
+        elements.push(
+          <div key={`mistake-${index}`} className="my-3 p-3.5 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-rose-200 text-xs sm:text-sm flex items-start gap-2.5 shadow-md">
+            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-rose-300 font-bold block mb-0.5">COMMON MISTAKE</strong>
+              <span>{formatInlineMarkdown(textVal)}</span>
+            </div>
+          </div>
+        );
+        return;
+      }
+
+      if (trimmed.startsWith('TEST YOURSELF:') || trimmed.startsWith('❓ TEST YOURSELF:')) {
+        const textVal = trimmed.replace(/^.*TEST YOURSELF:\s*/i, '');
+        elements.push(
+          <div key={`test-${index}`} className="my-3 p-3.5 rounded-2xl bg-amber-950/50 border border-amber-500/40 text-amber-200 text-xs sm:text-sm flex items-start gap-2.5 shadow-md">
+            <HelpCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-amber-300 font-bold block mb-0.5">TEST YOURSELF</strong>
+              <span>{formatInlineMarkdown(textVal)}</span>
+            </div>
+          </div>
+        );
         return;
       }
 
