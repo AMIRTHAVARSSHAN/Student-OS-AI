@@ -65,6 +65,7 @@ Make sure `subjects` is a clean array of subject strings.
 """
 
 @router.post("/chat-stream")
+@router.post("/chat")
 async def onboarding_chat_stream(
     req: Dict[str, Any],
     current_user: User = Depends(get_current_user)
