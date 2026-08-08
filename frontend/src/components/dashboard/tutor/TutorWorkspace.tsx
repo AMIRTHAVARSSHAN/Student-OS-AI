@@ -373,10 +373,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
           {[
             { id: 'chat', label: '💬 Chat', icon: Brain },
             { id: 'study', label: '📖 Study', icon: Play },
-            { id: 'notes', label: '📝 Notes', icon: FileText },
-            { id: 'mindmap', label: '📊 Mindmaps', icon: Layers },
-            { id: 'graph', label: '🕸️ Graph', icon: Network },
-            { id: 'voice', label: '🎙️ Voice', icon: Volume2 }
+            { id: 'notes', label: '📝 Notes', icon: FileText }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -542,7 +539,7 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                     <button
                       onClick={() => handleActiveStudyStep('evaluate')}
                       disabled={loadingStudyStep || !studentAnswer.trim()}
-                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg"
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg disabled:opacity-50"
                     >
                       {loadingStudyStep ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Submit Answer
                     </button>
@@ -572,61 +569,6 @@ export default function TutorWorkspace({ sessionId }: TutorWorkspaceProps) {
                 <p className="font-bold text-indigo-300"># {sessionData?.title || 'Academic Notes'}</p>
                 <p className="leading-relaxed">1. Key definitions & formulas stored continuously in backend database memory.</p>
               </div>
-            </div>
-          )}
-
-          {/* TAB 4: MINDMAP */}
-          {activeTab === 'mindmap' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
-              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-purple-400" /> Concept Mindmaps
-              </h2>
-              <div className="p-4 sm:p-6 rounded-2xl bg-black/60 border border-purple-500/30 font-mono text-xs text-purple-300 overflow-x-auto">
-                graph TD; A[{sessionData?.title || 'Topic'}] --&gt; B(Core Concepts); B --&gt; C(Exams & Practice);
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: CONCEPT GRAPH */}
-          {activeTab === 'graph' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
-              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                <Network className="w-4 h-4 text-emerald-400" /> Knowledge Graph Nodes
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {(conceptNodes || []).map((node: any) => (
-                  <div key={node.id} className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-emerald-500/30 space-y-1 text-xs">
-                    <span className="text-[9px] uppercase font-bold text-emerald-400">{node.subject_name}</span>
-                    <h4 className="font-bold text-white">{node.concept_name}</h4>
-                    <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-2">
-                      <div className="bg-emerald-500 h-full" style={{ width: `${(node.mastery_level || 0.8) * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: VOICE TUTOR */}
-          {activeTab === 'voice' && (
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-6 text-center space-y-4 shadow-xl">
-              <div className="w-14 h-14 rounded-full bg-indigo-600/20 border border-indigo-500 text-indigo-400 flex items-center justify-center mx-auto shadow-xl">
-                <Volume2 className="w-7 h-7 animate-pulse" />
-              </div>
-              <h2 className="text-base sm:text-lg font-black text-white">Voice Tutor AI</h2>
-              <p className="text-xs text-gray-400">Supports English, Tamil, and Tanglish speech interaction.</p>
-              <button
-                onClick={() => {
-                  setIsListening(!isListening);
-                  if (!isListening) speakText("Voice Tutor active. Ask your academic question!");
-                }}
-                className={`px-5 py-2.5 rounded-2xl font-bold text-xs inline-flex items-center gap-2 transition ${
-                  isListening ? 'bg-rose-600 text-white animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                }`}
-              >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                {isListening ? 'Stop Listening' : 'Start Voice Conversation'}
-              </button>
             </div>
           )}
         </div>
