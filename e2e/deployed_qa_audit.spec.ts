@@ -119,9 +119,7 @@ test.describe('ScholarOS Deployed Live Production E2E QA Audit', () => {
     await page.locator('button[type="submit"]').first().click();
     await loginPromise;
 
-    await page.waitForURL(/\/(onboarding|tutor|settings|\/)/, { timeout: 15000 });
-
-    await page.goto('/onboarding');
+    await page.waitForURL('**/onboarding', { timeout: 15000 });
     await page.waitForLoadState('networkidle');
 
     // Type name answer into chat box
@@ -164,6 +162,9 @@ test.describe('ScholarOS Deployed Live Production E2E QA Audit', () => {
     const loginPromise = page.waitForResponse((res) => res.url().includes('/auth/login') && res.status() === 200);
     await page.locator('button[type="submit"]').first().click();
     await loginPromise;
+
+    // Wait for login redirect to complete before navigating
+    await page.waitForURL('**/onboarding', { timeout: 15000 });
 
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
