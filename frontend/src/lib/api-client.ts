@@ -1,9 +1,15 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const rawBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+export const BASE_API_URL = rawBase.endsWith('/api/v1') ? rawBase.slice(0, -7) : rawBase;
+
+export const getApiUrl = (path: string) => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${BASE_API_URL}/api/v1${cleanPath}`;
+};
 
 export const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: `${BASE_API_URL}/api/v1`,
   headers: {
     'Content-Type': 'application/json',
   },

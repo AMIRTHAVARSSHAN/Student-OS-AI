@@ -22,7 +22,7 @@ import {
   Plus,
   Globe
 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, getApiUrl } from '@/lib/api-client';
 import { useAppStore } from '@/stores/app-store';
 
 interface Message {
@@ -118,8 +118,8 @@ export default function AIOnboardingPage() {
         return;
       }
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/api/v1/onboarding/chat`, {
+      const chatUrl = getApiUrl('/onboarding/chat');
+      const response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
