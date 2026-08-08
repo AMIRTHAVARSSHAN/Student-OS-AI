@@ -2,9 +2,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import { Sparkles, UserPlus, Brain, BookOpen, Check, Award } from 'lucide-react';
+import { Sparkles, UserPlus, Brain, BookOpen, Check, Award, MessageSquare } from 'lucide-react';
 
-export default function PartnerRecommender() {
+interface PartnerRecommenderProps {
+  onStartDirectMessage?: (peerId: string, peerName: string) => void;
+}
+
+export default function PartnerRecommender({ onStartDirectMessage }: PartnerRecommenderProps) {
   const queryClient = useQueryClient();
 
   const { data: recommendations, isLoading } = useQuery({
@@ -74,13 +78,21 @@ export default function PartnerRecommender() {
                 </div>
               </div>
 
-              <button
-                onClick={() => sendInviteMutation.mutate(rec.user_id)}
-                disabled={sendInviteMutation.isPending}
-                className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition"
-              >
-                <UserPlus className="w-3.5 h-3.5" /> Connect as Study Buddy
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onStartDirectMessage && onStartDirectMessage(rec.user_id, rec.full_name)}
+                  className="flex-1 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Fast DM
+                </button>
+                <button
+                  onClick={() => sendInviteMutation.mutate(rec.user_id)}
+                  disabled={sendInviteMutation.isPending}
+                  className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md transition disabled:opacity-50"
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> Connect
+                </button>
+              </div>
             </div>
           ))}
         </div>

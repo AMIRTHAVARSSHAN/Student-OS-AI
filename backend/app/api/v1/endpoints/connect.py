@@ -302,41 +302,39 @@ async def get_ai_partner_recommendations(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Fetch profiles of other students
+    # Fetch all registered users in ScholarOS except current_user
     res = await db.execute(
-        select(AcademicProfile)
-        .where(AcademicProfile.user_id != current_user.id)
+        select(User)
+        .where(User.id != current_user.id)
     )
-    profiles = res.scalars().all()
+    other_users = res.scalars().all()
 
     my_prof_res = await db.execute(select(AcademicProfile).where(AcademicProfile.user_id == current_user.id))
     my_prof = my_prof_res.scalars().first()
-    my_subjects = set(my_prof.subjects if my_prof and my_prof.subjects else [])
+    my_subjects = set(my_prof.subjects if my_prof and my_prof.subjects else ["Computer Science", "Physics"])
 
     out = []
-    for p in profiles:
-        u_res = await db.execute(select(User).where(User.id == p.user_id))
-        u = u_res.scalars().first()
-        if not u:
-            continue
+    for u in other_users:
+        p_res = await db.execute(select(AcademicProfile).where(AcademicProfile.user_id == u.id))
+        p = p_res.scalars().first()
 
-        their_subjects = set(p.subjects if p.subjects else [])
+        their_subjects = set(p.subjects if p and p.subjects else ["General Studies"])
         common = list(my_subjects.intersection(their_subjects))
-        match_score = round(min(0.98, 0.65 + (len(common) * 0.1)), 2)
+        match_score = round(min(0.99, 0.75 + (len(common) * 0.08)), 2)
 
         out.append(PartnerRecommendationResponse(
-            user_id=p.user_id,
-            full_name=u.full_name or "Peer Student",
+            user_id=u.id,
+            full_name=u.full_name or u.email.split("@")[0].capitalize(),
             avatar_url=u.avatar_url,
-            institution_name=p.institution_name,
-            field=p.field,
-            specialization=p.specialization,
+            institution_name=p.institution_name if p else "ScholarOS University",
+            field=p.field if p else "Academic Studies",
+            specialization=p.specialization if p else "AI & Machine Learning",
             matching_score=match_score,
-            common_subjects=common or (p.subjects[:2] if p.subjects else ["Data Structures"]),
-            complementary_topics=["Exam Practice", "Formula Review"]
+            common_subjects=common or list(their_subjects)[:2],
+            complementary_topics=["Exam Practice", "Formula Review", "Collaborative Notes"]
         ))
 
-    return out[:6]
+    return out
 
 # --- 5. ACADEMIC REPUTATION & PROGRESS FEED ---
 

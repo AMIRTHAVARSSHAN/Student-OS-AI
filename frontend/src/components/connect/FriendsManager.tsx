@@ -11,11 +11,16 @@ import {
   Search, 
   ShieldCheck, 
   Sparkles,
+  MessageSquare,
   Loader2,
   X
 } from 'lucide-react';
 
-export default function FriendsManager() {
+interface FriendsManagerProps {
+  onStartDirectMessage?: (peerId: string, peerName: string) => void;
+}
+
+export default function FriendsManager({ onStartDirectMessage }: FriendsManagerProps) {
   const queryClient = useQueryClient();
   const [targetInput, setTargetInput] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
@@ -24,6 +29,14 @@ export default function FriendsManager() {
     queryKey: ['connect_friends'],
     queryFn: async () => {
       const res = await apiClient.get('/connect/friends');
+      return res.data || [];
+    },
+  });
+
+  const { data: recommendations } = useQuery({
+    queryKey: ['partner_recommendations'],
+    queryFn: async () => {
+      const res = await apiClient.get('/connect/recommendations');
       return res.data || [];
     },
   });
@@ -130,18 +143,81 @@ export default function FriendsManager() {
                       <Check className="w-3.5 h-3.5" /> Accept
                     </button>
                   ) : (
-                    <span className="text-[10px] uppercase font-bold text-indigo-300 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30">
-                      Connected
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => onStartDirectMessage && onStartDirectMessage(f.addressee_id || f.requester_id, f.addressee_name || f.requester_name)}
+                        className="px-2.5 py-1 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1 transition"
+                      >
+                        <MessageSquare className="w-3 h-3 text-purple-400" /> Fast DM
+                      </button>
+                      <span className="text-[10px] uppercase font-bold text-indigo-300 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30">
+                        Connected
+                      </span>
+                    </div>
                   )}
                 </div>
               ))
             ) : (
-              <p className="text-xs text-gray-500 col-span-2 py-4">No connections added yet. Type a classmate&apos;s email above to send a request.</p>
+              <p className="text-xs text-gray-500 col-span-2 py-2">No connections added yet. Check recommended peers below or type a classmate&apos;s email above.</p>
             )}
           </div>
         </div>
       )}
+
+      {/* Recommended Registered Peers Directory & Fast DM */}
+      <div className="pt-4 border-t border-[var(--border-default)] space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" /> AI Recommended Registered Peers ({recommendations?.length || 0})
+          </h3>
+          <span className="text-[10px] text-gray-400">Direct Fast DM Available</span>
+        </div>
+
+        {recommendations && recommendations.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {recommendations.map((rec: any) => (
+              <div
+                key={rec.user_id}
+                className="p-3.5 rounded-2xl bg-[var(--surface-2)] border border-purple-500/20 hover:border-purple-500/40 transition flex flex-col justify-between space-y-2 text-xs shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-bold text-white shrink-0 text-xs">
+                      {rec.full_name?.charAt(0) || 'P'}
+                    </div>
+                    <div className="truncate">
+                      <h4 className="font-bold text-white truncate">{rec.full_name}</h4>
+                      <p className="text-[10px] text-gray-400 truncate">{rec.institution_name || 'ScholarOS Peer'}</p>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    {Math.round(rec.matching_score * 100)}% Match
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => onStartDirectMessage && onStartDirectMessage(rec.user_id, rec.full_name)}
+                    className="flex-1 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-[11px] font-bold flex items-center justify-center gap-1 transition"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-purple-400" /> Fast DM
+                  </button>
+                  <button
+                    onClick={() => sendRequestMutation.mutate(rec.user_id)}
+                    disabled={sendRequestMutation.isPending}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] flex items-center gap-1 transition shadow-sm disabled:opacity-50"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Connect
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-500 py-2">No other registered peers found in network yet.</p>
+        )}
+      </div>
     </div>
   );
 }

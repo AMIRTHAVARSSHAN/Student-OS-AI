@@ -64,6 +64,20 @@ export default function ConnectShell() {
     },
   });
 
+  const { data: recommendations } = useQuery({
+    queryKey: ['partner_recommendations'],
+    queryFn: async () => {
+      const res = await apiClient.get('/connect/recommendations');
+      return res.data || [];
+    },
+  });
+
+  const handleStartDirectMessage = (peerId: string, peerName: string) => {
+    const channelId = `dm_${peerId}`;
+    setSelectedChannel(channelId);
+    setActiveTab('chat');
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl w-full mx-auto pb-24 md:pb-16 overflow-x-hidden">
       {/* Header Banner (Fluid typography & non-overflowing bounds) */}
@@ -116,12 +130,12 @@ export default function ConnectShell() {
 
       {/* TAB CONTENT RENDERER */}
       <div className="min-h-[450px] w-full">
-        {activeTab === 'network' && <FriendsManager />}
+        {activeTab === 'network' && <FriendsManager onStartDirectMessage={handleStartDirectMessage} />}
         {activeTab === 'chat' && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[550px] sm:h-[600px] w-full">
-            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-3 space-y-2 overflow-y-auto max-h-[160px] lg:max-h-full">
-              <h3 className="font-bold text-[11px] uppercase tracking-wider text-gray-400 px-2">Study Channels</h3>
+            <div className="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-3xl p-3 space-y-3 overflow-y-auto max-h-[220px] lg:max-h-full">
               <div className="space-y-1">
+                <h3 className="font-bold text-[11px] uppercase tracking-wider text-gray-400 px-2">Group Channels</h3>
                 <button
                   onClick={() => setSelectedChannel('general_study_lounge')}
                   className={`w-full p-2.5 rounded-2xl text-xs font-bold text-left transition border ${
@@ -147,6 +161,31 @@ export default function ConnectShell() {
                   </button>
                 ))}
               </div>
+
+              {/* Direct Messages List */}
+              <div className="space-y-1 pt-2 border-t border-[var(--border-default)]">
+                <h3 className="font-bold text-[11px] uppercase tracking-wider text-purple-300 px-2 flex items-center justify-between">
+                  <span>Fast Peer DMs</span>
+                  <Sparkles className="w-3 h-3 text-purple-400" />
+                </h3>
+                {(recommendations || []).map((rec: any) => {
+                  const dmId = `dm_${rec.user_id}`;
+                  return (
+                    <button
+                      key={rec.user_id}
+                      onClick={() => setSelectedChannel(dmId)}
+                      className={`w-full p-2 rounded-2xl text-xs font-semibold text-left transition border flex items-center justify-between gap-2 ${
+                        selectedChannel === dmId
+                          ? 'bg-purple-600/20 text-purple-300 border-purple-500/40 font-bold'
+                          : 'bg-white/5 text-gray-300 border-transparent hover:border-white/10'
+                      }`}
+                    >
+                      <span className="truncate">💬 {rec.full_name}</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Online" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="lg:col-span-3 h-full w-full">
@@ -158,7 +197,7 @@ export default function ConnectShell() {
         {activeTab === 'whiteboard' && <SharedWhiteboard />}
         {activeTab === 'editor' && <CollabEditor />}
         {activeTab === 'lounge' && <StudyRoomLounge />}
-        {activeTab === 'recommender' && <PartnerRecommender />}
+        {activeTab === 'recommender' && <PartnerRecommender onStartDirectMessage={handleStartDirectMessage} />}
         {activeTab === 'feed' && <AcademicFeed />}
       </div>
 
