@@ -6,7 +6,7 @@ from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
 # 1. Prefer SUPABASE_DB_URL if present, otherwise DATABASE_URL
-raw_url = settings.SUPABASE_DB_URL.strip() or settings.DATABASE_URL.strip()
+raw_url = (settings.SUPABASE_DB_URL or os.getenv("SUPABASE_DB_URL", "")).strip() or (settings.DATABASE_URL or os.getenv("DATABASE_URL", "")).strip()
 db_url = raw_url
 
 # Normalize Postgres dialect for SQLAlchemy 2.0 asyncpg driver
@@ -19,17 +19,9 @@ elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+as
 if "postgresql+asyncpg" in db_url and "sslmode=" in db_url:
     db_url = re.sub(r'[?&]sslmode=[^&]+', '', db_url)
 
-# Force-resolve any Supabase connection string to the verified working IPv4 Pooler host (ap-southeast-1:6543)
-if "supabase.co" in db_url or "pooler.supabase.com" in db_url:
-    # 1) Ensure username contains tenant project reference for pooler authentication
+# Ensure tenant project reference is included if connecting via Supabase Pooler
+if "pooler.supabase.com" in db_url and "postgres." not in db_url:
     db_url = re.sub(r'://postgres:', '://postgres.iaykhpsrmptokiantgcc:', db_url)
-    
-    # 2) Replace hostname with verified IPv4 pooler in region ap-southeast-1 on port 6543
-    db_url = re.sub(
-        r'@(db\.[a-z0-9]+\.supabase\.co|aws-0-[a-z0-9-]+\.pooler\.supabase\.com)(?::\d+)?', 
-        '@aws-0-ap-southeast-1.pooler.supabase.com:6543', 
-        db_url
-    )
 
 # Fallback to local SQLite if no valid database URL is specified
 if not db_url:
@@ -42,7 +34,7 @@ engine_kwargs = {
 }
 
 if "postgresql+asyncpg" in db_url:
-    # Supabase Cloud PostgreSQL SSL Context
+    # Supabase / Postgres SSL Context Configuration
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.check_hostname = False
     ssl_ctx.verify_mode = ssl.CERT_NONE

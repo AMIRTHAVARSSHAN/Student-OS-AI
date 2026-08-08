@@ -31,8 +31,8 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.error(f"Error creating tables: {e}")
         logger.info("Database schemas initialized successfully.")
-    except Exception as db_err:
-        logger.error(f"Database connection notice during startup: {db_err}")
+    except BaseException as db_err:
+        logger.error(f"Database connection notice during startup (resilient mode): {db_err}")
 
     # Auto-seed & verify ONLY the Admin user account (admin2009@gmail.com / admin200968)
     try:
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
 
             except Exception as e:
                 logger.error(f"Error initializing admin user: {e}")
-    except Exception as err:
+    except BaseException as err:
         logger.error(f"Session initialization notice: {err}")
 
     yield
