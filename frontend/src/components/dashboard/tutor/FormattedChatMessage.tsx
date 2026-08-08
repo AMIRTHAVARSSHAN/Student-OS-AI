@@ -2,7 +2,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
-import { Lightbulb, AlertCircle, Info, Sparkles, CheckCircle, HelpCircle, Flame, ShieldAlert, Award } from 'lucide-react';
+import { Lightbulb, AlertCircle, Sparkles, HelpCircle, Award, ShieldAlert } from 'lucide-react';
+import CodeBlock from '@/components/CodeBlock';
+import MathRenderer, { renderTextWithMath } from '@/components/MathRenderer';
 
 interface FormattedChatMessageProps {
   content: string;
@@ -64,9 +66,7 @@ export default function FormattedChatMessage({ content }: FormattedChatMessagePr
             );
           } else {
             elements.push(
-              <div key={`code-${index}`} className="my-3 rounded-2xl bg-black/70 border border-white/10 p-3.5 font-mono text-xs text-indigo-300 overflow-x-auto">
-                <pre>{codeString}</pre>
-              </div>
+              <CodeBlock key={`code-${index}`} code={codeString} language={codeBlockType} />
             );
           }
           codeBuffer = [];
@@ -88,6 +88,25 @@ export default function FormattedChatMessage({ content }: FormattedChatMessagePr
       const trimmed = line.trim();
       if (!trimmed) {
         elements.push(<div key={`empty-${index}`} className="h-2" />);
+        return;
+      }
+
+      // Handle Block Math equations: $$ ... $$ or \[ ... \]
+      if ((trimmed.startsWith('$$') && trimmed.endsWith('$$') && trimmed.length > 4) ||
+          (trimmed.startsWith('\\[') && trimmed.endsWith('\\]') && trimmed.length > 4)) {
+        const rawMath = trimmed.startsWith('$$') ? trimmed.slice(2, -2) : trimmed.slice(2, -2);
+        elements.push(
+          <MathRenderer key={`math-${index}`} latex={rawMath} displayMode={true} />
+        );
+        return;
+      }
+
+      // Standalone LaTeX equation line without $$ wrapper e.g. y = \beta_0 + \beta_1x + \epsilon
+      if (/^\s*[a-zA-Z0-9_]+\s*=\s*\\[a-zA-Z0-9_\\\+\-\*\/\s\^\{\}\.]+\s*$/.test(trimmed) ||
+          /^\s*\\(beta|alpha|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|infty|frac|sqrt|sum|prod|int|partial)\b/.test(trimmed)) {
+        elements.push(
+          <MathRenderer key={`math-solitary-${index}`} latex={trimmed} displayMode={true} />
+        );
         return;
       }
 
@@ -247,13 +266,13 @@ export default function FormattedChatMessage({ content }: FormattedChatMessagePr
 
   // Inline Markdown Formatter (Bold, Italic, Code, Math LaTeX)
   const formatInlineMarkdown = (text: string) => {
-    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`|\$.*?\$)/g);
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`|\$.*?\$|\\\[.*?\\\]|\\\([^\)]+\\\))/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-extrabold text-white">{part.slice(2, -2)}</strong>;
+        return <strong key={i} className="font-extrabold text-white">{formatInlineMarkdown(part.slice(2, -2))}</strong>;
       }
       if (part.startsWith('*') && part.endsWith('*')) {
-        return <em key={i} className="italic text-gray-300">{part.slice(1, -1)}</em>;
+        return <em key={i} className="italic text-gray-300">{formatInlineMarkdown(part.slice(1, -1))}</em>;
       }
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
@@ -262,14 +281,14 @@ export default function FormattedChatMessage({ content }: FormattedChatMessagePr
           </code>
         );
       }
-      if (part.startsWith('$') && part.endsWith('$')) {
-        return (
-          <span key={i} className="px-2 py-0.5 rounded-md bg-purple-950/60 border border-purple-500/40 font-mono text-xs text-purple-200 font-semibold mx-0.5">
-            {part.slice(1, -1)}
-          </span>
-        );
+      if ((part.startsWith('$') && part.endsWith('$') && part.length > 2) ||
+          (part.startsWith('\\(') && part.endsWith('\\)')) ||
+          (part.startsWith('\\[') && part.endsWith('\\]'))) {
+        const rawFormula = part.startsWith('$') ? part.slice(1, -1) : part.slice(2, -2);
+        return <MathRenderer key={i} latex={rawFormula} displayMode={false} />;
       }
-      return part;
+
+      return renderTextWithMath(part);
     });
   };
 

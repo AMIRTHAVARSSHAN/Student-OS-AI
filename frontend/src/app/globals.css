@@ -87,3 +87,77 @@ body {
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-default);
 }
+
+/* Prism High-Contrast Dark Theme Syntax Highlighting */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #637799;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #a0aec0;
+}
+
+.token.namespace {
+  opacity: 0.7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #f6ad55;
+  font-weight: 600;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #68d391;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #4fd1c5;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #b794f4;
+  font-weight: 700;
+}
+
+.token.function,
+.token.class-name {
+  color: #63b3ed;
+  font-weight: 600;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #f687b3;
+}
+
+/* KaTeX custom dark mode enhancements */
+.katex {
+  font-size: 1.05em;
+  color: #e2e8f0 !important;
+}
+
+.katex-display {
+  margin: 0.5em 0 !important;
+}

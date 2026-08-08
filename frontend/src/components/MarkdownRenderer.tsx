@@ -1,6 +1,10 @@
+'use client';
+
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Info, AlertTriangle, Lightbulb, HelpCircle, CheckCircle2, Copy, Check } from 'lucide-react';
+import { Info, AlertTriangle, Lightbulb, CheckCircle2 } from 'lucide-react';
+import CodeBlock from './CodeBlock';
+import MathRenderer, { renderTextWithMath } from './MathRenderer';
 
 const MermaidDiagram = dynamic(() => import('./MermaidDiagram'), { ssr: false });
 
@@ -11,10 +15,7 @@ interface MarkdownRendererProps {
 export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
   if (!content) return <div className="text-gray-500 text-xs italic">No content available.</div>;
 
-  // Pre-process raw LaTeX commands if not wrapped in math delimiters ($...$ or $$...$$)
-  const processedContent = autoWrapLatexCommands(content);
-
-  const lines = processedContent.split('\n');
+  const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;
@@ -32,15 +33,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
           );
         } else {
           elements.push(
-            <div key={`code-${index}`} className="my-4 rounded-2xl bg-[#090d16] border border-emerald-500/30 p-4 font-mono text-xs text-emerald-300 overflow-x-auto shadow-2xl relative group">
-              {codeLang && (
-                <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2 mb-3">
-                  <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-wider">{codeLang}</span>
-                  <span className="text-[10px] text-gray-500">Source Code</span>
-                </div>
-              )}
-              <pre className="whitespace-pre overflow-x-auto leading-relaxed">{codeText}</pre>
-            </div>
+            <CodeBlock key={`code-${index}`} code={codeText} language={codeLang} />
           );
         }
         codeBlockBuffer = [];
@@ -69,18 +62,17 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
     if ((trimmed.startsWith('$$') && trimmed.endsWith('$$') && trimmed.length > 4) ||
         (trimmed.startsWith('\\[') && trimmed.endsWith('\\]') && trimmed.length > 4)) {
       const rawMath = trimmed.startsWith('$$') ? trimmed.slice(2, -2) : trimmed.slice(2, -2);
-      const cleaned = cleanMathExpression(rawMath);
       elements.push(
-        <div key={`math-${index}`} className="my-4 p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-purple-950/40 border border-purple-500/30 text-purple-200 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 overflow-x-auto">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 select-none">
-              EQUATION
-            </span>
-          </div>
-          <div className="font-mono text-sm tracking-wide text-white font-semibold flex-1 overflow-x-auto py-1">
-            {cleaned}
-          </div>
-        </div>
+        <MathRenderer key={`math-${index}`} latex={rawMath} displayMode={true} />
+      );
+      return;
+    }
+
+    // Standalone LaTeX equation without $$ wrapper e.g. y = \beta_0 + \beta_1x + \epsilon
+    if (/^\s*[a-zA-Z0-9_]+\s*=\s*\\[a-zA-Z0-9_\\\+\-\*\/\s\^\{\}\.]+\s*$/.test(trimmed) ||
+        /^\s*\\(beta|alpha|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|infty|frac|sqrt|sum|prod|int|partial)\b/.test(trimmed)) {
+      elements.push(
+        <MathRenderer key={`math-solitary-${index}`} latex={trimmed} displayMode={true} />
       );
       return;
     }
@@ -208,15 +200,6 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return <div className="space-y-1 select-text overflow-x-hidden">{elements}</div>;
 }
 
-// Auto-wrap unescaped raw LaTeX commands inside $...$ so they render as clean inline math
-function autoWrapLatexCommands(text: string): string {
-  if (!text) return text;
-  // If line contains LaTeX commands like \mathcal, \mathbf, \mathbb, \frac, \sqrt, \sum, \in, \dots but no $, wrap math segment in $
-  return text.replace(/(\\mathcal\{[^}]+\}|\\mathbf\{[^}]+\}|\\mathbb\{[^}]+\}|\\dots|\\in|\\hat\{[^}]+\})/g, (match) => {
-    return `$${match}$`;
-  });
-}
-
 // Inline formatting parser for bold, italic, code, and math ($...$)
 function formatInline(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
@@ -224,13 +207,9 @@ function formatInline(text: string): React.ReactNode {
   let keyIdx = 0;
 
   while (remaining.length > 0) {
-    // Inline code `code`
     const codeMatch = remaining.match(/`([^`]+)`/);
-    // Bold **text** or __text__
     const boldMatch = remaining.match(/(\*\*|__)(.*?)\1/);
-    // Inline Math $math$ or \(math\)
     const mathMatch = remaining.match(/\$([^$]+)\$|\\\((.*?)\\\)/);
-    // Italic *text* or _text_
     const italicMatch = remaining.match(/(\*|_)(.*?)\1/);
 
     let matchType = '';
@@ -259,17 +238,17 @@ function formatInline(text: string): React.ReactNode {
     }
 
     if (!selectedMatch) {
-      parts.push(remaining);
+      parts.push(renderTextWithMath(remaining));
       break;
     }
 
     if (firstIdx > 0) {
-      parts.push(remaining.slice(0, firstIdx));
+      parts.push(renderTextWithMath(remaining.slice(0, firstIdx)));
     }
 
     if (matchType === 'code') {
       parts.push(
-        <code key={`code-${keyIdx++}`} className="px-1.5 py-0.5 rounded bg-black/70 text-emerald-300 font-mono text-[11px] border border-emerald-500/20 break-words">
+        <code key={`code-${keyIdx++}`} className="px-1.5 py-0.5 rounded bg-indigo-950/60 text-indigo-300 font-mono text-[11px] border border-indigo-500/30 break-words">
           {selectedMatch[1]}
         </code>
       );
@@ -277,26 +256,18 @@ function formatInline(text: string): React.ReactNode {
     } else if (matchType === 'bold') {
       parts.push(
         <strong key={`bold-${keyIdx++}`} className="font-bold text-white">
-          {selectedMatch[2]}
+          {formatInline(selectedMatch[2])}
         </strong>
       );
       remaining = remaining.slice(firstIdx + selectedMatch[0].length);
     } else if (matchType === 'math') {
       const rawFormula = selectedMatch[1] || selectedMatch[2] || '';
-      const cleaned = cleanMathExpression(rawFormula);
-      parts.push(
-        <span
-          key={`math-${keyIdx++}`}
-          className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-md bg-purple-950/40 text-purple-200 font-mono font-semibold text-[11px] sm:text-xs border border-purple-500/30 shadow-sm"
-        >
-          {cleaned}
-        </span>
-      );
+      parts.push(<MathRenderer key={`math-${keyIdx++}`} latex={rawFormula} displayMode={false} />);
       remaining = remaining.slice(firstIdx + selectedMatch[0].length);
     } else if (matchType === 'italic') {
       parts.push(
         <em key={`italic-${keyIdx++}`} className="italic text-indigo-200">
-          {selectedMatch[2]}
+          {formatInline(selectedMatch[2])}
         </em>
       );
       remaining = remaining.slice(firstIdx + selectedMatch[0].length);
@@ -304,104 +275,4 @@ function formatInline(text: string): React.ReactNode {
   }
 
   return <>{parts}</>;
-}
-
-// Math expression cleaner & elegant LaTeX to readable math renderer
-function cleanMathExpression(raw: string): string {
-  if (!raw) return '';
-  let s = raw.trim();
-
-  // Escape brace sequences \{ and \}
-  s = s.replace(/\\\{/g, '{').replace(/\\\}/g, '}');
-
-  // \mathcal{D} -> 𝒟, \mathcal{X} -> 𝒳, \mathcal{Y} -> 𝒴, etc.
-  s = s.replace(/\\mathcal\{([A-Z])\}/g, (_, char) => {
-    const mathcalMap: Record<string, string> = {
-      A: '𝒜', B: 'ℬ', C: '𝒞', D: '𝒟', E: 'ℰ', F: 'ℱ', G: '𝒢', H: 'ℋ', I: 'ℐ',
-      J: '𝒥', K: '𝒦', L: 'ℒ', M: 'ℳ', N: '𝒩', O: '𝒪', P: '𝒫', Q: '𝒬', R: 'ℛ',
-      S: '𝒮', T: '𝒯', U: '𝒰', V: '𝒱', W: '𝒲', X: '𝒳', Y: '𝒴', Z: '𝒵',
-    };
-    return mathcalMap[char] || char;
-  });
-
-  // \mathbf{x} -> x (bold styled), \mathbf{w} -> w, etc.
-  s = s.replace(/\\mathbf\{([^}]+)\}/g, '$1');
-
-  // \mathbb{R} -> ℝ, \mathbb{N} -> ℕ, \mathbb{Z} -> ℤ
-  s = s.replace(/\\mathbb\{R\}/g, 'ℝ');
-  s = s.replace(/\\mathbb\{N\}/g, 'ℕ');
-  s = s.replace(/\\mathbb\{Z\}/g, 'ℤ');
-  s = s.replace(/\\mathbb\{Q\}/g, 'ℚ');
-  s = s.replace(/\\mathbb\{C\}/g, 'ℂ');
-  s = s.replace(/\\mathbb\{([^}]+)\}/g, '$1');
-
-  // \text{...} -> ...
-  s = s.replace(/\\text\{([^}]+)\}/g, '$1');
-
-  // Subscripts conversion (_1 -> ₁, _2 -> ₂, _N -> ₙ, _i -> ᵢ, _k -> ₖ)
-  s = s.replace(/_1\b/g, '₁');
-  s = s.replace(/_2\b/g, '₂');
-  s = s.replace(/_3\b/g, '₃');
-  s = s.replace(/_4\b/g, '₄');
-  s = s.replace(/_5\b/g, '₅');
-  s = s.replace(/_N\b/g, 'ₙ');
-  s = s.replace(/_n\b/g, 'ₙ');
-  s = s.replace(/_i\b/g, 'ᵢ');
-  s = s.replace(/_j\b/g, 'ⱼ');
-  s = s.replace(/_k\b/g, 'ₖ');
-
-  // Spacing & dots
-  s = s.replace(/\\dots/g, '…');
-  s = s.replace(/\\cdots/g, '⋯');
-  s = s.replace(/\\vdots/g, '⋮');
-  s = s.replace(/\\in/g, ' ∈ ');
-  s = s.replace(/\\quad/g, '  ');
-  s = s.replace(/\\qquad/g, '    ');
-  s = s.replace(/\\;/g, ' ');
-  s = s.replace(/\\,/g, ' ');
-
-  // Superscripts
-  s = s.replace(/\^2/g, '²');
-  s = s.replace(/\^3/g, '³');
-  s = s.replace(/\^n/g, 'ⁿ');
-  s = s.replace(/\^T\b/g, 'ᵀ');
-  s = s.replace(/\^d\b/g, 'ᵈ');
-  s = s.replace(/\^([0-9a-zA-Z]+)/g, '^$1');
-
-  // Accents & hats
-  s = s.replace(/\\hat\{([^}]+)\}/g, '$1̂');
-  s = s.replace(/\\bar\{([^}]+)\}/g, '$1̄');
-  s = s.replace(/\\vec\{([^}]+)\}/g, '$1⃗');
-
-  // Greek letters & math symbols
-  s = s.replace(/\\alpha/g, 'α');
-  s = s.replace(/\\beta/g, 'β');
-  s = s.replace(/\\gamma/g, 'γ');
-  s = s.replace(/\\delta/g, 'δ');
-  s = s.replace(/\\epsilon/g, 'ε');
-  s = s.replace(/\\theta/g, 'θ');
-  s = s.replace(/\\lambda/g, 'λ');
-  s = s.replace(/\\mu/g, 'μ');
-  s = s.replace(/\\pi/g, 'π');
-  s = s.replace(/\\sigma/g, 'σ');
-  s = s.replace(/\\omega/g, 'ω');
-  s = s.replace(/\\infty/g, '∞');
-  s = s.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
-  s = s.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)');
-  s = s.replace(/\\times/g, '×');
-  s = s.replace(/\\cdot/g, '·');
-  s = s.replace(/\\leq/g, '≤');
-  s = s.replace(/\\geq/g, '≥');
-  s = s.replace(/\\neq/g, '≠');
-  s = s.replace(/\\approx/g, '≈');
-  s = s.replace(/\\pm/g, '±');
-  s = s.replace(/\\sum/g, '∑');
-  s = s.replace(/\\prod/g, '∏');
-  s = s.replace(/\\int/g, '∫');
-  s = s.replace(/\\partial/g, '∂');
-
-  // Strip remaining backslashes
-  s = s.replace(/\\/g, '');
-
-  return s;
 }
