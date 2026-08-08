@@ -24,6 +24,8 @@ import {
   FileDown
 } from 'lucide-react';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import TiptapRenderer from '@/components/notes/TiptapRenderer';
+import PDFExportEngine from '@/components/notes/PDFExportEngine';
 import AIChatSidebar from './AIChatSidebar';
 
 interface NoteItem {
@@ -31,6 +33,7 @@ interface NoteItem {
   subject_id?: string;
   title: string;
   content: string;
+  tiptap_json?: any;
   plain_text: string;
   source: string;
   tags: string[];
@@ -710,7 +713,7 @@ export default function NotesPage() {
                 </div>
               ) : (
                 <div className="p-5 sm:p-7 rounded-2xl bg-black/60 text-white border border-white/10 min-h-[350px] shadow-inner">
-                  <MarkdownRenderer content={activeNote.content || activeNote.plain_text} />
+                  <TiptapRenderer tiptapJson={activeNote.tiptap_json} content={activeNote.content || activeNote.plain_text} />
                 </div>
               )}
             </div>

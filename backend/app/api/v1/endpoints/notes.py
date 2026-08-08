@@ -13,6 +13,7 @@ from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse, AINoteGenerat
 from app.core.database import get_db
 from app.core.config import settings
 from app.services.notes_pipeline.pipeline_orchestrator import generate_full_enterprise_note
+from app.services.notes_pipeline.tiptap_converter import convert_markdown_to_tiptap_json
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -24,11 +25,14 @@ async def create_note(
     db: AsyncSession = Depends(get_db)
 ):
     word_count = len(req.content.split())
+    tiptap_doc = req.tiptap_json or convert_markdown_to_tiptap_json(req.content, req.title)
+
     note = Note(
         user_id=current_user.id,
         subject_id=req.subject_id,
         title=req.title,
         content=req.content,
+        tiptap_json=tiptap_doc,
         plain_text=req.content,
         source=req.source,
         tags=req.tags,
@@ -39,7 +43,6 @@ async def create_note(
     db.add(note)
     await db.commit()
 
-    # Reload note with eager-loaded relationships to prevent Async SQLAlchemy lazy loading 500 error
     result = await db.execute(
         select(Note)
         .options(selectinload(Note.blocks), selectinload(Note.sources))
@@ -54,9 +57,8 @@ async def generate_ai_note(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Generates a structured, block-based academic study note using Google Gemini and saves it directly into the user's database.
+    Generates a structured, Tiptap JSON academic study note using Groq Llama 3.3 70B and saves it directly into the user's database.
     """
-    
     pipeline_res = generate_full_enterprise_note(
         topic=req.topic,
         subject_name=req.subject_name or "",
@@ -66,9 +68,9 @@ async def generate_ai_note(
 
     blueprint = pipeline_res["blueprint"]
     full_content = pipeline_res["full_markdown"]
+    tiptap_doc = pipeline_res.get("tiptap_json") or convert_markdown_to_tiptap_json(full_content, blueprint.title)
     db_blocks = pipeline_res["db_blocks"]
 
-    # Resolve optional subject_id if subject_name matches user's subjects
     subject_id = None
     if req.subject_name:
         res_subj = await db.execute(
@@ -87,6 +89,7 @@ async def generate_ai_note(
         subject_id=subject_id,
         title=blueprint.title,
         content=full_content,
+        tiptap_json=tiptap_doc,
         plain_text=full_content[:500],
         source="ai-generated",
         tags=blueprint.tags or [req.topic.lower(), "ai-generated"],
@@ -98,9 +101,8 @@ async def generate_ai_note(
     )
 
     db.add(note)
-    await db.flush() # To get note.id
+    await db.flush()
 
-    # Create Note Source
     source = NoteSource(
         note_id=note.id,
         source_type=req.source_type,
@@ -109,7 +111,6 @@ async def generate_ai_note(
     )
     db.add(source)
 
-    # Create Note Blocks
     for b_data in db_blocks:
         block = NoteBlock(
             note_id=note.id,
@@ -120,15 +121,13 @@ async def generate_ai_note(
         db.add(block)
 
     await db.commit()
-    
-    # Reload with relationships
+
     result = await db.execute(
         select(Note)
         .options(selectinload(Note.blocks), selectinload(Note.sources))
         .where(Note.id == note.id)
     )
-    note_with_rels = result.scalars().first()
-    return note_with_rels
+    return result.scalars().first()
 
 @router.get("", response_model=List[NoteResponse])
 async def list_notes(
@@ -147,7 +146,14 @@ async def list_notes(
     query = query.order_by(Note.is_pinned.desc(), Note.updated_at.desc())
 
     result = await db.execute(query)
-    return result.scalars().all()
+    notes = result.scalars().all()
+
+    # Dynamic fallback to ensure legacy notes automatically expose tiptap_json
+    for n in notes:
+        if not n.tiptap_json:
+            n.tiptap_json = convert_markdown_to_tiptap_json(n.content, n.title)
+
+    return notes
 
 @router.get("/{note_id}", response_model=NoteResponse)
 async def get_note(
@@ -164,6 +170,10 @@ async def get_note(
     note = result.scalars().first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
+
+    if not note.tiptap_json:
+        note.tiptap_json = convert_markdown_to_tiptap_json(note.content, note.title)
+
     return note
 
 @router.patch("/{note_id}", response_model=NoteResponse)
@@ -189,6 +199,10 @@ async def update_note(
         note.content = req.content
         note.plain_text = req.content
         note.word_count = len(req.content.split())
+        if req.tiptap_json is None:
+            note.tiptap_json = convert_markdown_to_tiptap_json(req.content, note.title)
+    if req.tiptap_json is not None:
+        note.tiptap_json = req.tiptap_json
     if req.subject_id is not None:
         note.subject_id = str(req.subject_id)
     if req.tags is not None:
@@ -201,16 +215,13 @@ async def update_note(
         note.is_pinned = req.is_pinned
     if req.is_archived is not None:
         note.is_archived = req.is_archived
+    if req.cover_image is not None:
+        note.cover_image = req.cover_image
+    if req.icon is not None:
+        note.icon = req.icon
 
     await db.commit()
-    
-    # Reload with relationships
-    res_updated = await db.execute(
-        select(Note)
-        .options(selectinload(Note.blocks), selectinload(Note.sources))
-        .where(Note.id == note.id)
-    )
-    return res_updated.scalars().first()
+    return note
 
 @router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_note(

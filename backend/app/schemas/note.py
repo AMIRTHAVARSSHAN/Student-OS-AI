@@ -36,6 +36,7 @@ class NoteCreate(BaseModel):
     subject_id: Optional[str] = None
     title: str
     content: str
+    tiptap_json: Optional[Any] = None
     source: str = "manual"
     tags: List[str] = []
     unit_number: Optional[int] = None
@@ -50,6 +51,7 @@ class NoteUpdate(BaseModel):
     subject_id: Optional[str] = None
     title: Optional[str] = None
     content: Optional[str] = None
+    tiptap_json: Optional[Any] = None
     tags: Optional[List[str]] = None
     unit_number: Optional[int] = None
     topic: Optional[str] = None
@@ -66,6 +68,7 @@ class NoteResponse(BaseModel):
     subject_id: Optional[str] = None
     title: str
     content: str
+    tiptap_json: Optional[Any] = None
     plain_text: str
     source: str
     tags: List[str] = []

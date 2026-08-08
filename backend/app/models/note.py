@@ -29,6 +29,7 @@ class Note(Base, TimestampMixin):
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     word_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tiptap_json: Mapped[Optional[Any]] = mapped_column(JSON, default=dict, nullable=True)
     last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="notes")

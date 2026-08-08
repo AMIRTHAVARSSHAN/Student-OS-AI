@@ -5,6 +5,7 @@ from app.services.notes_pipeline.note_planner import generate_note_blueprint, No
 from app.services.notes_pipeline.section_generator import generate_section_content, GeneratedSection
 from app.services.notes_pipeline.diagram_generator import generate_diagrams_for_note, GeneratedDiagram
 from app.services.notes_pipeline.markdown_enhancer import enhance_and_assemble_markdown
+from app.services.notes_pipeline.tiptap_converter import convert_markdown_to_tiptap_json
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +15,10 @@ def generate_full_enterprise_note(
     language: str = "en",
     source_text: str = ""
 ) -> Dict[str, Any]:
-    logger.info(f"Starting Multi-Stage AI Notes Pipeline for topic: '{topic}'")
+    logger.info(f"Starting Multi-Stage Structured AI Notes Pipeline for topic: '{topic}'")
 
-    # STAGE 1: Planner Blueprint
-    logger.info("Executing Stage 1: Blueprint Planning...")
+    # STAGE 1: Blueprint Planner
+    logger.info("Executing Stage 1: Note Blueprint Planning...")
     blueprint = generate_note_blueprint(
         topic=topic,
         subject_name=subject_name,
@@ -25,7 +26,7 @@ def generate_full_enterprise_note(
         source_text=source_text
     )
 
-    # STAGE 2: Section Generator
+    # STAGE 2: Section Content Generator
     logger.info(f"Executing Stage 2: Section Generation ({len(blueprint.sections)} sections)...")
     sections: List[GeneratedSection] = []
     for sec_bp in blueprint.sections:
@@ -41,27 +42,28 @@ def generate_full_enterprise_note(
             logger.warning(f"Section generation failed for '{sec_bp.title}': {e}")
 
     # STAGE 3: Diagram Engine
-    logger.info("Executing Stage 3: Diagram & Visual Assets Engine...")
+    logger.info("Executing Stage 3: Diagram Engine...")
     diagrams: List[GeneratedDiagram] = []
     try:
         diagrams = generate_diagrams_for_note(blueprint=blueprint, language=language)
     except Exception as e:
         logger.warning(f"Diagram generation failed: {e}")
 
-    # STAGE 4: Markdown & KaTeX Enhancer
-    logger.info("Executing Stage 4: Markdown Enhancement & Assembly...")
+    # STAGE 4: Assembly & Tiptap Document Conversion
+    logger.info("Executing Stage 4: Tiptap Structured Document Assembly...")
     full_markdown = enhance_and_assemble_markdown(
         blueprint=blueprint,
         sections=sections,
         diagrams=diagrams
     )
 
-    # Convert sections and blocks into backend DB NoteBlock structure
+    tiptap_document = convert_markdown_to_tiptap_json(full_markdown, blueprint.title)
+
+    # Convert sections and blocks into DB NoteBlock structure
     db_blocks = []
     order_counter = 0
 
     for sec in sections:
-        # Section Heading Block
         db_blocks.append({
             "block_type": "heading_1",
             "content": {"title": sec.title, "text": sec.title},
@@ -94,7 +96,6 @@ def generate_full_enterprise_note(
             })
             order_counter += 1
 
-    # Add Mermaid diagrams to db_blocks
     for diag in diagrams:
         if diag.mermaid_code:
             db_blocks.append({
@@ -109,5 +110,6 @@ def generate_full_enterprise_note(
         "sections": sections,
         "diagrams": diagrams,
         "full_markdown": full_markdown,
+        "tiptap_json": tiptap_document,
         "db_blocks": db_blocks
     }
